@@ -6,7 +6,7 @@
     <div class="min-h-screen w-full flex flex-col md:flex-row">
 
         <!-- SISI KIRI: Hero Section -->
-        <div class="hidden md:flex md:w-1/2 lg:w-7/12 relative bg-slate-900 justify-between flex-col p-12 overflow-hidden">
+        <div class="hidden md:flex md:w-1/2 lg:w-6/12 xl:w-7/12 relative bg-slate-900 justify-between flex-col p-12 overflow-hidden">
             <div class="absolute inset-0 z-0 opacity-40 bg-cover bg-center"
                 style="background-image: url('{{ asset('img/login.png.png') }}');">
             </div>
@@ -72,96 +72,96 @@
             </div>
         </div>
 
-        <!-- SISI KANAN: Form Login -->
-        <div class="w-full md:w-1/2 lg:w-5/12 bg-slate-50 flex items-center justify-center p-6 lg:p-12">
-            <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+        <!-- SISI KANAN: Form Login (Lebih Luas & Proporsional) -->
+        <div class="w-full md:w-1/2 lg:w-6/12 xl:w-5/12 bg-slate-50 flex items-center justify-center p-6 lg:p-12">
+            <div class="w-full max-w-lg bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-100">
 
                 <!-- Header Form -->
                 <div class="text-center mb-8">
-                    <img src="{{ asset('img/rescue-log.png') }}" alt="Logo Rescue Log" class="w-16 h-16 object-contain mx-auto mb-3">
-                    <h3 class="text-2xl font-bold text-slate-900">Selamat Datang</h3>
-                    <p class="text-slate-500 text-sm mt-1">Silakan masuk untuk mengakses RESCUE-LOG</p>
+                    <img src="{{ asset('img/rescue-log.png') }}" alt="Logo Rescue Log" class="w-20 h-20 object-contain mx-auto mb-3">
+                    <h3 class="text-3xl font-extrabold text-slate-900">Selamat Datang</h3>
+                    <p class="text-slate-500 text-sm mt-1.5">Silakan masuk untuk mengakses RESCUE-LOG</p>
                 </div>
 
-                <!-- Alert Errors Login (jika email/password salah) -->
+                <!-- Alert Errors Login -->
                 @if ($errors->any())
-                    <div class="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-center space-x-2">
-                        <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-center space-x-2">
+                        <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
                         <span>{{ $errors->first() }}</span>
                     </div>
                 @endif
 
-                <!-- Form -->
-                <form action="{{ route('login') }}" method="POST" class="space-y-5">
+                <!-- Form Login -->
+                <form action="{{ route('login') }}" method="POST" class="space-y-6">
                     @csrf
 
                     <!-- Input Email -->
                     <div>
-                        <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Username / Email</label>
+                        <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Username / Email</label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                                 <i data-lucide="user" class="w-5 h-5"></i>
                             </div>
                             <input type="email" name="email" id="email" value="{{ old('email') }}" required autofocus
-                                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
                                 placeholder="Masukkan email petugas">
                         </div>
                     </div>
 
                     <!-- Input Password -->
                     <div>
-                        <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Password</label>
+                        <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Password</label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                                 <i data-lucide="key-round" class="w-5 h-5"></i>
                             </div>
                             <input type="password" name="password" id="password" required
-                                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
                                 placeholder="Masukkan password">
                         </div>
                     </div>
 
                     <!-- Remember Me & Forgot Pass -->
-                    <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center justify-between text-sm py-1">
                         <label class="flex items-center text-slate-600 cursor-pointer">
                             <input type="checkbox" name="remember" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-                            <span class="ml-2 text-xs font-medium">Ingat saya</span>
+                            <span class="ml-2 text-xs font-semibold">Ingat saya</span>
                         </label>
-                        <a href="#" class="text-xs font-semibold text-blue-600 hover:text-blue-700">Lupa password?</a>
+                        <a href="#" class="text-xs font-bold text-blue-600 hover:text-blue-700">Lupa password?</a>
                     </div>
 
                     <!-- Tombol Submit -->
                     <button type="submit"
-                        class="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl shadow-lg shadow-blue-700/30 flex items-center justify-center space-x-2 transition duration-200">
-                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                        class="w-full py-3.5 bg-blue-700 hover:bg-blue-800 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-700/30 flex items-center justify-center space-x-2 transition duration-200 cursor-pointer">
+                        <i data-lucide="log-in" class="w-5 h-5"></i>
                         <span>Masuk</span>
                     </button>
                 </form>
 
                 <!-- Divider -->
-                <div class="relative my-6 text-center">
+                <div class="relative my-8 text-center">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-slate-200"></div>
                     </div>
-                    <span class="relative bg-white px-3 text-xs text-slate-400 uppercase tracking-wider">Akses Role Sistem</span>
+                    <span class="relative bg-white px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Akses Role Sistem</span>
                 </div>
 
                 <!-- Shortcut Card Role BPBD -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl text-center">
-                        <div class="w-8 h-8 bg-amber-500 text-white rounded-lg flex items-center justify-center mx-auto mb-1.5 shadow-sm">
-                            <i data-lucide="building-2" class="w-4 h-4"></i>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-amber-50/60 border border-amber-200/80 rounded-xl text-center">
+                        <div class="w-9 h-9 bg-amber-500 text-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
+                            <i data-lucide="building-2" class="w-5 h-5"></i>
                         </div>
                         <span class="block text-xs font-bold text-amber-900">Posko Komando</span>
-                        <span class="block text-[10px] text-amber-700 mt-0.5">Akses Induk BPBD</span>
+                        <span class="block text-[11px] text-amber-700 mt-0.5">Akses Induk BPBD</span>
                     </div>
 
-                    <div class="p-3 bg-emerald-50/60 border border-emerald-200/80 rounded-xl text-center">
-                        <div class="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center mx-auto mb-1.5 shadow-sm">
-                            <i data-lucide="tent" class="w-4 h-4"></i>
+                    <div class="p-4 bg-emerald-50/60 border border-emerald-200/80 rounded-xl text-center">
+                        <div class="w-9 h-9 bg-emerald-600 text-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
+                            <i data-lucide="tent" class="w-5 h-5"></i>
                         </div>
                         <span class="block text-xs font-bold text-emerald-900">Posko Kecil</span>
-                        <span class="block text-[10px] text-emerald-700 mt-0.5">Akses Lapangan</span>
+                        <span class="block text-[11px] text-emerald-700 mt-0.5">Akses Lapangan</span>
                     </div>
                 </div>
 
