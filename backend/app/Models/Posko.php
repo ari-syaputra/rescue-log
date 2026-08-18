@@ -30,6 +30,21 @@ class Posko extends Model
         'status',
     ];
 
+    // --- HELPER METODE UNTUK GENERATE KODE ---
+
+    /**
+     * Generate kode undangan unik (contoh: PSK-A8K29X)
+     */
+    public static function generateKodeUndangan(): string
+    {
+        do {
+            // Menghasilkan kombinasi 6 karakter acak kapital (huruf & angka)
+            $kode = 'PSK-' . strtoupper(Str::random(6));
+        } while (self::where('kode_undangan', $kode)->exists()); 
+
+        return $kode;
+    }
+
     // --- RELASI ---
 
     public function bpbd()
@@ -61,7 +76,4 @@ class Posko extends Model
     {
         return $this->hasMany(PoskoFoto::class, 'posko_id');
     }
-
- 
 }
-
