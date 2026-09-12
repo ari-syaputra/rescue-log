@@ -67,7 +67,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/bencana/{id}/finish', [Admin\BencanaController::class, 'finish'])->name('bencana.finish');
       // Permintaan Kebutuhan
         Route::get('/permintaan', fn() => view('dashboard.admin.permintaan.index'))->name('permintaan');
-
+    
+        Route::get('/eskalasi-restock', fn() => view('dashboard.admin.eskalasi.index'))->name('eskalasi.index');
         
         // Manajemen Stok Inventaris
         Route::get('/inventaris', [StokInventarisController::class, 'index'])->name('inventaris');
@@ -112,6 +113,8 @@ Route::middleware('auth')->group(function () {
 
             // Pengajuan Kebutuhan Logistik Komando ke BPBD/Atasan
             Route::resource('pengajuan', Komando\PengajuanKebutuhanController::class)->only(['index', 'store', 'destroy']);
+
+            Route::get('/sos-medis', fn() => view('dashboard.komando.sos.index'))->name('sos.index');
 
             // Kelola Posko Kecil / Sub-Posko
             Route::resource('posko-kecil', Komando\SubPoskoController::class)->names('posko-kecil');
