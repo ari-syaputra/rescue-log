@@ -41,8 +41,11 @@
         });
     });
 
+    // 1. Fungsi Modal Validasi / Approve
     function openModalValidasi(data) {
-        document.getElementById('formValidasi').action = `/admin/bencana/validate/${data.id}`;
+        // PERBAIKAN: URL disesuaikan dengan route /admin/bencana/{id}/approve
+        document.getElementById('formValidasi').action = `/admin/bencana/${data.id}/approve`;
+
         document.getElementById('valJenis').innerText = data.jenis_bencana || '-';
         document.getElementById('valJenisBadge').innerText = data.jenis_bencana || 'Bencana';
         document.getElementById('valWilayah').innerText = data.wilayah || data.lokasi || '-';
@@ -57,6 +60,7 @@
         document.getElementById('modalValidasi').classList.add('hidden');
     }
 
+    // 2. Konfirmasi Abaikan / Reject
     function konfirmasiAbaikan(id) {
         Swal.fire({
             title: 'Abaikan Deteksi Bencana?',
@@ -79,6 +83,7 @@
         });
     }
 
+    // 3. Konfirmasi Selesai Operasi / Finish
     function konfirmasiSelesaiOperasi(id, jenisBencana) {
         Swal.fire({
             title: 'Selesaikan Operasi Tanggap Darurat?',

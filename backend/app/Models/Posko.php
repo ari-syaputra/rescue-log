@@ -76,4 +76,9 @@ class Posko extends Model
     {
         return $this->hasMany(PoskoFoto::class, 'posko_id');
     }
+
+    public function scopeKomando($query)
+    {
+        return $query->where('tipe_posko', 'komando');
+    }
 }
