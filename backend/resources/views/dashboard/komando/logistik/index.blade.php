@@ -3,12 +3,12 @@
 @section('title', 'Data Logistik & Pengajuan')
 
 @section('content')
-<div class="space-y-6 pb-12">
+<div class="w-full space-y-6 pb-12">
 
-    <!-- JUDUL & PENJELASAN HALAMAN -->
+    <!-- JUDUL & PENJELASAN HALAMAN (FONT DISESUAIKAN) -->
     <div>
-        <h1 class="text-3xl font-black text-slate-900 tracking-tight">Data Logistik & Pengajuan</h1>
-        <p class="text-sm text-slate-500 mt-1">Kelola, pantau, dan konfirmasi pengajuan kebutuhan logistik dari posko-posko lapangan.</p>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Data Logistik & Pengajuan</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Kelola, pantau, dan konfirmasi pengajuan kebutuhan logistik dari posko-posko lapangan.</p>
     </div>
 
     {{-- Pesan Eror Tangkapan Exception --}}
@@ -41,38 +41,38 @@
         </div>
     @endif
 
-    <!-- BANNER AI PREDIKSI STOK LOGISTIK -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 rounded-2xl p-6 text-white shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+    <!-- BANNER AI PREDIKSI STOK LOGISTIK (TYPOGRAPHY DISESUAIKAN) -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 rounded-2xl p-6 text-white shadow-md flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="flex items-start gap-4 z-10">
             <!-- Icon Box AI -->
-            <div class="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300 shadow-inner">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300 shadow-inner">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-extrabold tracking-tight">AI Prediksi Stok Logistik</h2>
-                    <span class="text-[10px] bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md uppercase font-black tracking-wider">AKTIF</span>
+                    <h2 class="text-lg font-bold tracking-tight text-white">AI Prediksi Stok Logistik</h2>
+                    <span class="text-[10px] bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md uppercase font-bold tracking-wider">AKTIF</span>
                 </div>
-                <p class="text-blue-100 text-xs md:text-sm leading-relaxed max-w-3xl mt-1">
+                <p class="text-blue-100 text-xs leading-relaxed max-w-3xl mt-1 font-normal">
                     Sistem Machine Learning memantau tren pengajuan dari seluruh posko lapangan secara real-time untuk memastikan akurasi distribusi logistik bantuan bencana.
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- 4 KOTAK STATISTIK RINGKASAN DATA -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <!-- 4 KOTAK STATISTIK RINGKASAN DATA (TYPOGRAPHY & UKURAN HARMONIS) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Card Total -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">TOTAL PENGAJUAN</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $pengajuans->total() }}</h3>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">TOTAL PENGAJUAN</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ $pengajuans->total() }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </div>
         </div>
@@ -80,10 +80,10 @@
         <!-- Card Disetujui -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">DISETUJUI</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $pengajuans->whereIn('status', ['disetujui', 'disetujui_sebagian', 'dalam_pengiriman', 'selesai'])->count() }}</h3>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">DISETUJUI</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ $pengajuans->whereIn('status', ['disetujui', 'disetujui_sebagian', 'dalam_pengiriman', 'selesai'])->count() }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
         </div>
@@ -91,10 +91,10 @@
         <!-- Card Menunggu ACC -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">MENUNGGU ACC</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $pengajuans->where('status', 'pending')->count() }}</h3>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">MENUNGGU ACC</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ $pengajuans->where('status', 'pending')->count() }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
         </div>
@@ -102,28 +102,28 @@
         <!-- Card Ditolak -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">DITOLAK</p>
-                <h3 class="text-3xl font-black text-slate-900">{{ $pengajuans->where('status', 'ditolak')->count() }}</h3>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">DITOLAK</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ $pengajuans->where('status', 'ditolak')->count() }}</h3>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
         </div>
     </div>
 
     <!-- FILTER & PENCARIAN -->
-    <form method="GET" action="{{ route('komando.logistik.index') }}" class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+    <form method="GET" action="{{ route('komando.logistik.index') }}" class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3 flex-1">
             <!-- Search Field -->
             <div class="relative min-w-[280px] flex-1">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nomor pengajuan atau posko..." class="w-full pl-10 pr-4 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nomor pengajuan atau posko..." class="w-full pl-10 pr-4 py-2 text-xs font-normal bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition">
             </div>
 
             <!-- Dropdown Status -->
-            <select name="status" class="px-3.5 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-600 focus:outline-none cursor-pointer hover:bg-slate-100 transition">
+            <select name="status" class="px-3.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none cursor-pointer hover:bg-slate-100 transition">
                 <option value="">Semua Status</option>
                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu Persetujuan</option>
                 <option value="disetujui" {{ request('status') == 'disetujui' ? 'selected' : '' }}>Disetujui Full</option>
@@ -135,24 +135,24 @@
         </div>
 
         <!-- Submit Button Filter -->
-        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer">
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
             Filter Data
         </button>
     </form>
 
     <!-- TABEL DATA PENGAJUAN -->
-    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
-                        <th class="py-4 px-6">NO. PENGAJUAN</th>
-                        <th class="py-4 px-6">POSKO LAPANGAN</th>
-                        <th class="py-4 px-6">WAKTU PENGAJUAN</th>
-                        <th class="py-4 px-6">STATUS</th>
-                        <th class="py-4 px-6">RINGKASAN KEBUTUHAN</th>
-                        <th class="py-4 px-6 text-right">AKSI KONFIRMASI</th>
+                    <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200/80">
+                        <th class="py-3.5 px-6">NO. PENGAJUAN</th>
+                        <th class="py-3.5 px-6">POSKO LAPANGAN</th>
+                        <th class="py-3.5 px-6">WAKTU PENGAJUAN</th>
+                        <th class="py-3.5 px-6">STATUS</th>
+                        <th class="py-3.5 px-6">RINGKASAN KEBUTUHAN</th>
+                        <th class="py-3.5 px-6 text-right">AKSI KONFIRMASI</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
@@ -164,12 +164,12 @@
 
                             <td class="py-4 px-6">
                                 <div class="font-bold text-slate-900">{{ $item->user->name ?? 'Posko Lapangan' }}</div>
-                                <div class="text-[11px] text-slate-400">{{ $item->user->email ?? '-' }}</div>
+                                <div class="text-[11px] text-slate-400 font-normal">{{ $item->user->email ?? '-' }}</div>
                             </td>
 
                             <td class="py-4 px-6">
                                 <div class="font-bold text-slate-800">{{ $item->created_at->format('d M Y') }}</div>
-                                <div class="text-[11px] text-slate-400">{{ $item->created_at->format('H:i') }} WIB</div>
+                                <div class="text-[11px] text-slate-400 font-normal">{{ $item->created_at->format('H:i') }} WIB</div>
                             </td>
 
                             <td class="py-4 px-6">
@@ -274,7 +274,7 @@
                                         Selesai
                                     </span>
                                 @else
-                                    <span class="text-xs text-slate-400 italic">Ditolak</span>
+                                    <span class="text-xs text-slate-400 font-medium italic">Ditolak</span>
                                 @endif
                             </td>
                         </tr>
@@ -292,7 +292,7 @@
             </table>
         </div>
 
-        <div class="p-4 border-t border-slate-200 bg-slate-50">
+        <div class="p-4 border-t border-slate-200/80 bg-slate-50">
             {{ $pengajuans->links() }}
         </div>
     </div>

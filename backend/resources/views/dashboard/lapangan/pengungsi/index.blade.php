@@ -1,7 +1,7 @@
 @extends('layouts.app-lapangan')
 
 @section('content')
-<div class="w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6 pb-10">
+<div class="w-full space-y-6">
 
     <!-- Header & Action Buttons -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -11,14 +11,14 @@
         
         <div class="mt-4 sm:mt-0">
             <!-- Tombol Trigger Modal -->
-            <button onclick="openPendataanModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">
+            <button onclick="openPendataanModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm cursor-pointer">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Perbarui Data Pengungsi
             </button>
         </div>
     </div>
 
-    <!-- Alert Success -->
+    <!-- Alert Error -->
     @if(session('error'))
         <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-sm font-medium">
             {{ session('error') }}
@@ -27,7 +27,7 @@
 
     <!-- Tampilan Jika BELUM ADA DATA -->
     @if($isFirstTime)
-        <div class="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
+        <div class="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center w-full">
             <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             </div>
@@ -36,7 +36,7 @@
         </div>
     @else
         <!-- Tampilan Jika SUDAH ADA DATA (Dashboard Mini) -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
             <!-- Statistik 1: Total Pengungsi -->
             <div class="bg-blue-600 rounded-xl p-6 text-white shadow-sm md:col-span-2 flex flex-col justify-between">
                 <div class="text-blue-100 text-sm font-medium mb-2 uppercase tracking-wide">Total Pengungsi Terkini</div>
@@ -58,7 +58,7 @@
         </div>
 
         <!-- Tabel Riwayat Data -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full">
             <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 class="font-bold text-gray-800">Riwayat Perubahan Data</h3>
             </div>
