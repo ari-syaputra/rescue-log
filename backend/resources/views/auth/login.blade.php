@@ -14,7 +14,7 @@
 
             <!-- Header Brand -->
             <div class="relative z-10 flex items-center space-x-1.5 bg-transparent">
-                <img src="{{ asset('img/rescue-log.png') }}" alt="Logo BPBD"
+                <img src="{{ asset('img/Rescue-log.png') }}" alt="Logo BPBD"
                     class="w-[100px] h-[120px] object-contain flex-shrink-0 bg-transparent">
 
                 <div class="bg-transparent">
@@ -50,7 +50,7 @@
                         </div>
                         <div>
                             <h4 class="text-white font-semibold text-base">Terkoordinasi</h4>
-                            <p class="text-slate-400 text-sm">Koordinasi terstruktur antara Posko Komando dan Posko Lapangan.</p>
+                            <p class="text-slate-400 text-sm">Koordinasi terstruktur antara Posko Komando dan Sub Posko Lapangan.</p>
                         </div>
                     </div>
 
@@ -106,7 +106,6 @@
                                 class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
                                 placeholder="Masukkan email petugas">
                         </div>
-                    </div>
 
                     <!-- Input Password -->
                     <div>
@@ -168,10 +167,92 @@
             </div>
         </div>
 
-        <!-- SweetAlert2 Notifikasi -->
+     
+        
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        
+        <!-- Script Switch Mode Login -->
         <script>
+            function switchLoginMode(mode) {
+                const tabKomando = document.getElementById('tab-komando');
+                const tabSubposko = document.getElementById('tab-subposko');
+                
+                const iconKomandoWrapper = document.getElementById('icon-komando-wrapper');
+                const iconSubposkoWrapper = document.getElementById('icon-subposko-wrapper');
+
+                const sectionKomando = document.getElementById('section-komando');
+                const sectionSubposko = document.getElementById('section-subposko');
+
+                const inputEmail = document.getElementById('email');
+                const inputPassword = document.getElementById('password');
+                const inputKode = document.getElementById('kode_undangan');
+
+                const btnSubmit = document.getElementById('btn-submit');
+                const btnText = document.getElementById('btn-text');
+
+                if (mode === 'komando') {
+                    // Active style for Komando
+                    tabKomando.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-amber-500 border-amber-600 text-white shadow-md";
+                    iconKomandoWrapper.className = "w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1.5";
+                    
+                    // Inactive style for Sub Posko
+                    tabSubposko.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100";
+                    iconSubposkoWrapper.className = "w-8 h-8 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1.5";
+
+                    // Show/Hide Sections
+                    sectionKomando.classList.remove('hidden');
+                    sectionSubposko.classList.add('hidden');
+
+                    // Inputs validation switching
+                    inputEmail.required = true;
+                    inputPassword.required = true;
+                    inputKode.required = false;
+                    inputKode.value = ''; // clear input
+
+                    // Submit Button Style
+                    btnSubmit.className = "w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-2 transition duration-200";
+                    btnText.innerText = "Masuk Posko Komando";
+
+                } else {
+                    // Active style for Sub Posko
+                    tabSubposko.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-blue-600 border-blue-700 text-white shadow-md";
+                    iconSubposkoWrapper.className = "w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1.5";
+
+                    // Inactive style for Komando
+                    tabKomando.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100";
+                    iconKomandoWrapper.className = "w-8 h-8 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1.5";
+
+                    // Show/Hide Sections
+                    sectionKomando.classList.add('hidden');
+                    sectionSubposko.classList.remove('hidden');
+
+                    // Inputs validation switching
+                    inputEmail.required = false;
+                    inputPassword.required = false;
+                    inputKode.required = true;
+                    inputEmail.value = '';
+                    inputPassword.value = '';
+
+                    // Submit Button Style
+                    btnSubmit.className = "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition duration-200";
+                    btnText.innerText = "Masuk Sub Posko";
+                }
+            }
+
             document.addEventListener('DOMContentLoaded', function() {
+                // Initialize Lucide icons if available
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+
+                // Restore active state if validation returned error on kode_undangan
+                @if(old('kode_undangan'))
+                    switchLoginMode('subposko');
+                @else
+                    switchLoginMode('komando');
+                @endif
+
+                // Toast SweetAlert
                 const Toast = Swal.mixin({
                     toast: true,
                     position: 'top-end',
