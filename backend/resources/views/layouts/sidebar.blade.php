@@ -1,4 +1,3 @@
-<!-- layouts/sidebar.blade.php -->
 @php
     $role = auth()->user()->role ?? '';
 @endphp
@@ -6,7 +5,6 @@
 <aside id="main-sidebar" :class="sidebarOpen ? 'w-64' : 'w-20'"
     class="bg-[#1b2250] text-white flex flex-col min-h-screen shrink-0 shadow-xl transition-all duration-300 z-40 overflow-hidden">
 
-    <!-- Header Logo & Title -->
     <div class="p-5 flex items-center gap-3 border-b border-indigo-900/40">
         <div class="w-10 h-10 flex-shrink-0">
             <img src="{{ asset('img/rescue-log.png') }}" alt="Logo" class="w-10 h-10 object-contain">
@@ -26,7 +24,6 @@
         </div>
     </div>
 
-    <!-- Area Navigasi Utama -->
     <div class="p-4 flex-1 overflow-y-auto">
         <nav class="space-y-1.5">
 
@@ -45,6 +42,13 @@
                     class="flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 {{ request()->routeIs('admin.bencana*') ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' : 'text-indigo-200/70 hover:bg-white/10 hover:text-white' }}">
                     <x-fas-house-crack class="w-5 h-5 shrink-0" />
                     <span x-show="sidebarOpen" class="whitespace-nowrap">Inisiasi & Kaji Cepat</span>
+                </a>
+
+                {{-- TAMBAHAN BARU: Aktivasi Posko Komando (Langkah 2) --}}
+                <a href="{{ route('admin.posko.create') }}"
+                    class="flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 {{ request()->routeIs('admin.posko.*') ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' : 'text-indigo-200/70 hover:bg-white/10 hover:text-white' }}">
+                    <x-heroicon-s-building-office-2 class="w-5 h-5 shrink-0" />
+                    <span x-show="sidebarOpen" class="whitespace-nowrap">Aktivasi Posko Komando</span>
                 </a>
 
                 {{-- Stok Gudang Utama & Cold-Start ML --}}

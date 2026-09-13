@@ -16,7 +16,7 @@ class SubPoskoController extends Controller
         $komandoPoskoId = Auth::user()->posko_id;
 
         if (!$komandoPoskoId) {
-            return back()->with('error', 'Akun Anda belum terhubung dengan Posko Utama.');
+            return back()->with('error', 'Akun Anda belum terhubung dengan Posko Komando Utama.');
         }
 
         $baseQuery = Posko::where('parent_id', $komandoPoskoId)
@@ -32,28 +32,25 @@ class SubPoskoController extends Controller
             $query->where('status', $request->status);
         }
 
-        $subPoskos = $query->latest()->paginate(5)->withQueryString();
+        $subPoskos = $query->latest()->paginate(10)->withQueryString();
 
         $totalPosko    = (clone $baseQuery)->count();
         $poskoAktif    = (clone $baseQuery)->where('status', 'aktif')->count();
-        $poskoSiaga    = (clone $baseQuery)->where('status', 'siaga')->count();
-        $poskoNonaktif = (clone $baseQuery)->where('status', 'nonaktif')->count();
         $totalPetugas  = (clone $baseQuery)->sum('jumlah_petugas') ?? 0;
 
         return view('dashboard.komando.posko-kecil.index', compact(
             'subPoskos', 
             'totalPosko', 
             'poskoAktif', 
-            'poskoSiaga', 
-            'poskoNonaktif', 
             'totalPetugas'
         ));
     }
 
     public function create()
     {
+        $komandoPosko = Posko::find(Auth::user()->posko_id);
         $bencanaAktif = Bencana::where('status', 'sedang_berjalan')->get();
-        return view('dashboard.komando.posko-kecil.create', compact('bencanaAktif'));
+        return view('dashboard.komando.posko-kecil.create', compact('bencanaAktif', 'komandoPosko'));
     }
 
     public function store(Request $request)
@@ -81,12 +78,14 @@ class SubPoskoController extends Controller
             $fotoPath = $request->file('foto')->store('posko-images', 'public');
         }
 
+        // Generate Access Key Unik Sub-Posko
         $kodeUndangan = Posko::generateKodeUndangan();
 
         $subPosko = Posko::create([
             'nama_posko'       => $validated['nama_posko'],
             'tipe_posko'       => 'lapangan_kecil',
             'parent_id'        => $user->posko_id, 
+            'bpbd_id'          => $user->bpbd_id,
             'bencana_id'       => $validated['bencana_id'],
             'kode_undangan'    => $kodeUndangan,
             'penanggung_jawab' => $validated['penanggung_jawab'],
@@ -100,84 +99,6 @@ class SubPoskoController extends Controller
         ]);
 
         return redirect()->route('komando.posko-kecil.index')
-            ->with('success', "Sub-Posko '{$subPosko->nama_posko}' berhasil didaftarkan. Kode Akses: {$kodeUndangan}");
-    }
-
-    public function show($id)
-    {
-        $komandoPoskoId = Auth::user()->posko_id;
-
-        $subPosko = Posko::with(['bencana', 'users'])
-            ->where('parent_id', $komandoPoskoId)
-            ->findOrFail($id);
-
-        return view('dashboard.komando.posko-kecil.show', compact('subPosko'));
-    }
-
-    public function edit($id)
-    {
-        $komandoPoskoId = Auth::user()->posko_id;
-
-        $subPosko = Posko::where('parent_id', $komandoPoskoId)->findOrFail($id);
-        $bencanaAktif = Bencana::where('status', 'sedang_berjalan')->get();
-
-        return view('dashboard.komando.posko-kecil.edit', compact('subPosko', 'bencanaAktif'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $komandoPoskoId = Auth::user()->posko_id;
-        $subPosko = Posko::where('parent_id', $komandoPoskoId)->findOrFail($id);
-
-        $validated = $request->validate([
-            'nama_posko'       => 'required|string|max:255',
-            'bencana_id'       => 'required|exists:bencana,id',
-            'penanggung_jawab' => 'required|string|max:255',
-            'status'           => 'required|in:aktif,siaga,nonaktif',
-            'kontak_hp'        => 'nullable|string|max:20',
-            'jumlah_petugas'   => 'nullable|integer|min:0',
-            'lokasi'           => 'nullable|string',
-            'latitude'         => 'nullable|numeric',
-            'longitude'        => 'nullable|numeric',
-            'foto'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
-        ]);
-
-        if ($request->hasFile('foto')) {
-            if ($subPosko->foto && Storage::disk('public')->exists($subPosko->foto)) {
-                Storage::disk('public')->delete($subPosko->foto);
-            }
-            $validated['foto'] = $request->file('foto')->store('posko-images', 'public');
-        }
-
-        $subPosko->update($validated);
-
-        return redirect()->route('komando.posko-kecil.index')
-            ->with('success', "Data Sub-Posko '{$subPosko->nama_posko}' berhasil diperbarui.");
-    }
-
-    public function destroy($id)
-    {
-        $komandoPoskoId = Auth::user()->posko_id;
-        $subPosko = Posko::where('parent_id', $komandoPoskoId)->findOrFail($id);
-
-        if ($subPosko->foto && Storage::disk('public')->exists($subPosko->foto)) {
-            Storage::disk('public')->delete($subPosko->foto);
-        }
-
-        $subPosko->delete();
-
-        return redirect()->route('komando.posko-kecil.index')
-            ->with('success', 'Sub-Posko berhasil dihapus.');
-    }
-
-    public function regenerateCode($id)
-    {
-        $komandoPoskoId = Auth::user()->posko_id;
-        $subPosko = Posko::where('parent_id', $komandoPoskoId)->findOrFail($id);
-        $subPosko->update([
-            'kode_undangan' => Posko::generateKodeUndangan(),
-        ]);
-
-        return back()->with('success', "Kode akses baru berhasil dibuat: {$subPosko->kode_undangan}");
+            ->with('success', "Sub-Posko '{$subPosko->nama_posko}' berhasil didaftarkan. Access Key: {$kodeUndangan}");
     }
 }

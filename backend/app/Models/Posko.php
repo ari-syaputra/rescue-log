@@ -18,6 +18,7 @@ class Posko extends Model
         'parent_id',
         'bpbd_id',
         'bencana_id',
+        'user_id',
         'kode_undangan',
         'lokasi',
         'latitude',
@@ -30,15 +31,9 @@ class Posko extends Model
         'status',
     ];
 
-    // --- HELPER METODE UNTUK GENERATE KODE ---
-
-    /**
-     * Generate kode undangan unik (contoh: PSK-A8K29X)
-     */
     public static function generateKodeUndangan(): string
     {
         do {
-            // Menghasilkan kombinasi 6 karakter acak kapital (huruf & angka)
             $kode = 'PSK-' . strtoupper(Str::random(6));
         } while (self::where('kode_undangan', $kode)->exists()); 
 
@@ -65,6 +60,12 @@ class Posko extends Model
     public function children()
     {
         return $this->hasMany(Posko::class, 'parent_id');
+    }
+
+    // TAMBAHKAN INI (Relasi ke User / Akun Komandan Posko)
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function users()

@@ -5,12 +5,12 @@
 @section('content')
     <div class="min-h-screen w-full flex flex-col md:flex-row">
 
-        <!-- SISI KIRI: Hero Section -->
+        <!-- SISI KIRI: Hero Section (Kembali ke Desain Asli) -->
         <div class="hidden md:flex md:w-1/2 lg:w-6/12 xl:w-7/12 relative bg-slate-900 justify-between flex-col p-12 overflow-hidden">
             <div class="absolute inset-0 z-0 opacity-40 bg-cover bg-center"
                 style="background-image: url('{{ asset('img/login.png.png') }}');">
             </div>
-            <div class="absolute inset-0 bg-linear-to-br from-blue-950/90 via-slate-900/95 to-slate-950/90 z-0"></div>
+            <div></div>
 
             <!-- Header Brand -->
             <div class="relative z-10 flex items-center space-x-1.5 bg-transparent">
@@ -29,8 +29,7 @@
                     Sistem Penanganan Bencana
                 </h1>
                 <p class="text-slate-300 text-base leading-relaxed mb-10">
-                    Kelola informasi bencana, posko pengungsian, stok logistik, dan distribusi bantuan secara terintegrasi
-                    dan real-time.
+                    Kelola informasi bencana, posko pengungsian, stok logistik, dan distribusi bantuan secara terintegrasi dan real-time.
                 </p>
 
                 <div class="space-y-6">
@@ -72,210 +71,204 @@
             </div>
         </div>
 
-        <!-- SISI KANAN: Form Login (Lebih Luas & Proporsional) -->
+        <!-- SISI KANAN: Form Login Multimode -->
         <div class="w-full md:w-1/2 lg:w-6/12 xl:w-5/12 bg-slate-50 flex items-center justify-center p-6 lg:p-12">
             <div class="w-full max-w-lg bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-100">
 
                 <!-- Header Form -->
-                <div class="text-center mb-8">
-                    <img src="{{ asset('img/rescue-log.png') }}" alt="Logo Rescue Log" class="w-20 h-20 object-contain mx-auto mb-3">
-                    <h3 class="text-3xl font-extrabold text-slate-900">Selamat Datang</h3>
-                    <p class="text-slate-500 text-sm mt-1.5">Silakan masuk untuk mengakses RESCUE-LOG</p>
+                <div class="text-center mb-6">
+                    <img src="{{ asset('img/Rescue-log.png') }}" alt="Logo Rescue Log" class="w-20 h-20 object-contain mx-auto mb-3">
+                    <h3 class="text-3xl font-extrabold text-slate-900">Portal Log In</h3>
+                    <p class="text-slate-500 text-sm mt-1.5">Pilih metode akses sesuai kewenangan operasional Anda</p>
+                </div>
+
+                <!-- TAB SWITCHER ROLE LOGIN -->
+                <div class="grid grid-cols-2 gap-3 mb-6 p-1 bg-slate-100 rounded-2xl">
+                    <button type="button" id="tab-komando" onclick="switchLoginMode('komando')" 
+                            class="p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-amber-500 border-amber-600 text-white shadow-md">
+                        <div id="icon-komando-wrapper" class="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1">
+                            <i data-lucide="building-2" class="w-4 h-4"></i>
+                        </div>
+                        <span class="block text-xs font-bold">Posko Utama / BPBD</span>
+                    </button>
+
+                    <button type="button" id="tab-subposko" onclick="switchLoginMode('subposko')" 
+                            class="p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100">
+                        <div id="icon-subposko-wrapper" class="w-7 h-7 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1">
+                            <i data-lucide="key-round" class="w-4 h-4"></i>
+                        </div>
+                        <span class="block text-xs font-bold">Access Key Sub-Posko</span>
+                    </button>
                 </div>
 
                 <!-- Alert Errors Login -->
                 @if ($errors->any())
-                    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-center space-x-2">
+                    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center space-x-2">
                         <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
                         <span>{{ $errors->first() }}</span>
                     </div>
                 @endif
 
-                <!-- Form Login -->
-                <form action="{{ route('login') }}" method="POST" class="space-y-6">
+                <!-- FORM UTAMA LOGIN -->
+                <form action="{{ route('login') }}" method="POST" class="space-y-5">
                     @csrf
 
-                    <!-- Input Email -->
-                    <div>
-                        <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Username / Email</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                    <!-- SECTION A: LOGIN EMAIL & PASSWORD (KOMANDO & BPBD ADMIN) -->
+                    <div id="section-komando" class="space-y-4">
+                        <div>
+                            <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Username / Email</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                    <i data-lucide="user" class="w-5 h-5"></i>
+                                </div>
+                                <input type="email" name="email" id="email" value="{{ old('email') }}" autofocus
+                                    class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                                    placeholder="Masukkan email petugas">
                             </div>
-                            <input type="email" name="email" id="email" value="{{ old('email') }}" required autofocus
-                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
-                                placeholder="Masukkan email petugas">
                         </div>
 
-                    <!-- Input Password -->
-                    <div>
-                        <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Password</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                <i data-lucide="key-round" class="w-5 h-5"></i>
+                        <div>
+                            <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Password</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                    <i data-lucide="key-round" class="w-5 h-5"></i>
+                                </div>
+                                <input type="password" name="password" id="password"
+                                    class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                                    placeholder="Masukkan password">
                             </div>
-                            <input type="password" name="password" id="password" required
-                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
-                                placeholder="Masukkan password">
+                        </div>
+
+                        <div class="flex items-center justify-between text-sm py-1">
+                            <label class="flex items-center text-slate-600 cursor-pointer">
+                                <input type="checkbox" name="remember" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300">
+                                <span class="ml-2 text-xs font-semibold">Ingat saya</span>
+                            </label>
+                            <a href="#" class="text-xs font-bold text-amber-600 hover:text-amber-700">Lupa password?</a>
                         </div>
                     </div>
 
-                    <!-- Remember Me & Forgot Pass -->
-                    <div class="flex items-center justify-between text-sm py-1">
-                        <label class="flex items-center text-slate-600 cursor-pointer">
-                            <input type="checkbox" name="remember" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-                            <span class="ml-2 text-xs font-semibold">Ingat saya</span>
-                        </label>
-                        <a href="#" class="text-xs font-bold text-blue-600 hover:text-blue-700">Lupa password?</a>
+                    <!-- SECTION B: LOGIN ACCESS KEY (SUB-POSKO LAPANGAN) -->
+                    <div id="section-subposko" class="space-y-4 hidden">
+                        <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs space-y-1">
+                            <p class="font-bold flex items-center gap-1">🔑 Akses Petugas Lapangan</p>
+                            <p class="text-blue-700 text-[11px]">Masukkan Access Key (contoh: <strong>PSK-XXXXXX</strong>) yang tertera pada manajemen Sub-Posko.</p>
+                        </div>
+
+                        <div>
+                            <label for="kode_undangan" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Access Key Sub-Posko</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                    <i data-lucide="key" class="w-5 h-5"></i>
+                                </div>
+                                <input type="text" name="kode_undangan" id="kode_undangan" value="{{ old('kode_undangan') }}"
+                                    class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-base font-mono uppercase tracking-widest font-bold focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                                    placeholder="PSK-A8K29X">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Tombol Submit -->
-                    <button type="submit"
-                        class="w-full py-3.5 bg-blue-700 hover:bg-blue-800 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-700/30 flex items-center justify-center space-x-2 transition duration-200 cursor-pointer">
+                    <button type="submit" id="btn-submit"
+                        class="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-base rounded-xl shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-2 transition duration-200 cursor-pointer">
                         <i data-lucide="log-in" class="w-5 h-5"></i>
-                        <span>Masuk</span>
+                        <span id="btn-text">Masuk Posko Komando</span>
                     </button>
                 </form>
-
-                <!-- Divider -->
-                <div class="relative my-8 text-center">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-slate-200"></div>
-                    </div>
-                    <span class="relative bg-white px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Akses Role Sistem</span>
-                </div>
-
-                <!-- Shortcut Card Role BPBD -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 bg-amber-50/60 border border-amber-200/80 rounded-xl text-center">
-                        <div class="w-9 h-9 bg-amber-500 text-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
-                            <i data-lucide="building-2" class="w-5 h-5"></i>
-                        </div>
-                        <span class="block text-xs font-bold text-amber-900">Posko Komando</span>
-                        <span class="block text-[11px] text-amber-700 mt-0.5">Akses Induk BPBD</span>
-                    </div>
-
-                    <div class="p-4 bg-emerald-50/60 border border-emerald-200/80 rounded-xl text-center">
-                        <div class="w-9 h-9 bg-emerald-600 text-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
-                            <i data-lucide="tent" class="w-5 h-5"></i>
-                        </div>
-                        <span class="block text-xs font-bold text-emerald-900">Posko Kecil</span>
-                        <span class="block text-[11px] text-emerald-700 mt-0.5">Akses Lapangan</span>
-                    </div>
-                </div>
 
             </div>
         </div>
 
-     
-        
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        
-        <!-- Script Switch Mode Login -->
-        <script>
-            function switchLoginMode(mode) {
-                const tabKomando = document.getElementById('tab-komando');
-                const tabSubposko = document.getElementById('tab-subposko');
+    </div>
+
+    <!-- Script Switch Mode Login & SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function switchLoginMode(mode) {
+            const tabKomando = document.getElementById('tab-komando');
+            const tabSubposko = document.getElementById('tab-subposko');
+            
+            const iconKomandoWrapper = document.getElementById('icon-komando-wrapper');
+            const iconSubposkoWrapper = document.getElementById('icon-subposko-wrapper');
+
+            const sectionKomando = document.getElementById('section-komando');
+            const sectionSubposko = document.getElementById('section-subposko');
+
+            const inputEmail = document.getElementById('email');
+            const inputPassword = document.getElementById('password');
+            const inputKode = document.getElementById('kode_undangan');
+
+            const btnSubmit = document.getElementById('btn-submit');
+            const btnText = document.getElementById('btn-text');
+
+            if (mode === 'komando') {
+                tabKomando.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-amber-500 border-amber-600 text-white shadow-md";
+                iconKomandoWrapper.className = "w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1";
                 
-                const iconKomandoWrapper = document.getElementById('icon-komando-wrapper');
-                const iconSubposkoWrapper = document.getElementById('icon-subposko-wrapper');
+                tabSubposko.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100";
+                iconSubposkoWrapper.className = "w-7 h-7 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1";
 
-                const sectionKomando = document.getElementById('section-komando');
-                const sectionSubposko = document.getElementById('section-subposko');
+                sectionKomando.classList.remove('hidden');
+                sectionSubposko.classList.add('hidden');
 
-                const inputEmail = document.getElementById('email');
-                const inputPassword = document.getElementById('password');
-                const inputKode = document.getElementById('kode_undangan');
+                inputEmail.required = true;
+                inputPassword.required = true;
+                inputKode.required = false;
 
-                const btnSubmit = document.getElementById('btn-submit');
-                const btnText = document.getElementById('btn-text');
+                btnSubmit.className = "w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-base rounded-xl shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-2 transition duration-200 cursor-pointer";
+                btnText.innerText = "Masuk Posko Komando";
 
-                if (mode === 'komando') {
-                    // Active style for Komando
-                    tabKomando.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-amber-500 border-amber-600 text-white shadow-md";
-                    iconKomandoWrapper.className = "w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1.5";
-                    
-                    // Inactive style for Sub Posko
-                    tabSubposko.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100";
-                    iconSubposkoWrapper.className = "w-8 h-8 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1.5";
+            } else {
+                tabSubposko.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-blue-600 border-blue-700 text-white shadow-md";
+                iconSubposkoWrapper.className = "w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1";
 
-                    // Show/Hide Sections
-                    sectionKomando.classList.remove('hidden');
-                    sectionSubposko.classList.add('hidden');
+                tabKomando.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100";
+                iconKomandoWrapper.className = "w-7 h-7 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1";
 
-                    // Inputs validation switching
-                    inputEmail.required = true;
-                    inputPassword.required = true;
-                    inputKode.required = false;
-                    inputKode.value = ''; // clear input
+                sectionKomando.classList.add('hidden');
+                sectionSubposko.classList.remove('hidden');
 
-                    // Submit Button Style
-                    btnSubmit.className = "w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-2 transition duration-200";
-                    btnText.innerText = "Masuk Posko Komando";
+                inputEmail.required = false;
+                inputPassword.required = false;
+                inputKode.required = true;
 
-                } else {
-                    // Active style for Sub Posko
-                    tabSubposko.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-blue-600 border-blue-700 text-white shadow-md";
-                    iconSubposkoWrapper.className = "w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mx-auto mb-1.5";
+                btnSubmit.className = "w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition duration-200 cursor-pointer";
+                btnText.innerText = "Masuk Sub Posko Lapangan";
+            }
+        }
 
-                    // Inactive style for Komando
-                    tabKomando.className = "p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer focus:outline-none bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100";
-                    iconKomandoWrapper.className = "w-8 h-8 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center mx-auto mb-1.5";
-
-                    // Show/Hide Sections
-                    sectionKomando.classList.add('hidden');
-                    sectionSubposko.classList.remove('hidden');
-
-                    // Inputs validation switching
-                    inputEmail.required = false;
-                    inputPassword.required = false;
-                    inputKode.required = true;
-                    inputEmail.value = '';
-                    inputPassword.value = '';
-
-                    // Submit Button Style
-                    btnSubmit.className = "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition duration-200";
-                    btnText.innerText = "Masuk Sub Posko";
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
             }
 
-            document.addEventListener('DOMContentLoaded', function() {
-                // Initialize Lucide icons if available
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+            @if(old('kode_undangan'))
+                switchLoginMode('subposko');
+            @else
+                switchLoginMode('komando');
+            @endif
 
-                // Restore active state if validation returned error on kode_undangan
-                @if(old('kode_undangan'))
-                    switchLoginMode('subposko');
-                @else
-                    switchLoginMode('komando');
-                @endif
-
-                // Toast SweetAlert
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true
-                });
-
-                @if (session('success'))
-                    Toast.fire({
-                        icon: 'success',
-                        title: "{{ session('success') }}"
-                    });
-                @endif
-
-                @if (session('error'))
-                    Toast.fire({
-                        icon: 'error',
-                        title: "{{ session('error') }}"
-                    });
-                @endif
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
             });
-        </script>
 
-    </div>
+            @if (session('success'))
+                Toast.fire({
+                    icon: 'success',
+                    title: "{{ session('success') }}"
+                });
+            @endif
+
+            @if (session('error'))
+                Toast.fire({
+                    icon: 'error',
+                    title: "{{ session('error') }}"
+                });
+            @endif
+        });
+    </script>
 @endsection

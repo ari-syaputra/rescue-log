@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Bencana extends Model
 {
-    // 1. Beri tahu Laravel nama tabel yang benar (tanpa huruf 's')
     protected $table = 'bencana';
+
     protected $fillable = [
         'jenis_bencana',
         'lokasi_bencana',
@@ -16,5 +16,17 @@ class Bencana extends Model
         'tanggal_aktivasi',
         'tanggal_selesai',
         'status',
+        'estimasi_pengungsi_awal',
+        'sk_status_darurat_path',
     ];
+
+    protected $casts = [
+        'tanggal_aktivasi' => 'datetime',
+        'tanggal_selesai'  => 'datetime',
+    ];
+
+    public function poskos()
+    {
+        return $this->hasMany(Posko::class, 'bencana_id');
+    }
 }

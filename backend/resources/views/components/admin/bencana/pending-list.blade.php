@@ -8,7 +8,6 @@
     </span>
 </div>
 
-<!-- Container Card list dengan Scrollbar Kustom -->
 <div class="space-y-3 overflow-y-auto max-h-105 pr-2 custom-scrollbar">
     @forelse($pendingDisasters ?? [] as $pending)
         <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/40 hover:bg-amber-50 transition-colors">
@@ -26,7 +25,9 @@
             </div>
 
             <div class="flex items-center gap-2 mt-3 pt-3 border-t border-amber-200/60">
-                <button onclick="openModalValidasi({{ json_encode($pending) }})"
+                <button type="button" 
+                    data-pending="{{ json_encode($pending) }}"
+                    onclick="openModalValidasi(this)"
                     class="flex-1 py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-sm cursor-pointer">
                     Tinjau & Aktifkan
                 </button>
@@ -48,7 +49,6 @@
 </div>
 
 <style>
-    /* Styling Scrollbar Halus & Slim */
     .custom-scrollbar::-webkit-scrollbar {
         width: 5px;
     }

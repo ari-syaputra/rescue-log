@@ -9,16 +9,14 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
-    // 1. Menampilkan Form Login
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
-    // 2. Memproses Autentikasi Login (Email/Password & Kode Undangan Posko)
     public function login(Request $request)
     {
-        // Opsi A: Login Menggunakan Kode Undangan (Role Lapangan)
+        // Opsi A: Login Menggunakan Access Key Kode Undangan (Role Lapangan)
         if ($request->filled('kode_undangan')) {
             $request->validate([
                 'kode_undangan' => ['required', 'string'],
@@ -28,8 +26,8 @@ class AuthController extends Controller
 
             if (!$posko) {
                 return back()->withErrors([
-                    'kode_undangan' => 'Kode undangan posko tidak ditemukan atau tidak valid.',
-                ])->onlyInput('kode_undangan');
+                    'kode_undangan' => 'Access Key posko tidak ditemukan atau tidak valid.',
+                ])->withInput();
             }
 
             // Cari user petugas lapangan yang terhubung ke posko ini
@@ -37,14 +35,15 @@ class AuthController extends Controller
                 ->where('role', 'lapangan')
                 ->first();
 
-            // Opsional: Buat user otomatis jika belum ada user terikat pada posko tersebut
+            // Buat user otomatis jika belum ada user terikat pada posko tersebut
             if (!$user) {
                 $user = User::create([
                     'name'     => 'Petugas ' . $posko->nama_posko,
-                    'email'    => 'petugas.' . strtolower($posko->kode_undangan) . '@posko.local',
+                    'email'    => 'petugas.' . strtolower(str_replace('-', '', $posko->kode_undangan)) . '@rescuelog.id',
                     'password' => bcrypt('password123'),
                     'role'     => 'lapangan',
                     'posko_id' => $posko->id,
+                    'bpbd_id'  => $posko->bpbd_id,
                 ]);
             }
 
@@ -68,13 +67,13 @@ class AuthController extends Controller
             $user = Auth::user();
 
             // Pengalihan berdasarkan Role
-            if ($user->role === 'admin' || $user->role === 'bpbd') {
+            if (in_array($user->role, ['admin', 'bpbd', 'bpbd_kabkota'])) {
                 return redirect()->route('admin.dashboard')
                     ->with('success', 'Berhasil login! Selamat datang di Dashboard Admin BPBD.');
             } 
             elseif (in_array($user->role, ['komando', 'koordinator_komando', 'posko_komando'])) {
                 return redirect()->route('komando.dashboard')
-                    ->with('success', 'Berhasil login! Selamat datang di Posko Komando.');
+                    ->with('success', 'Berhasil login! Selamat datang di Posko Komando Utama.');
             } 
             elseif ($user->role === 'lapangan') {
                 return redirect()->route('lapangan.dashboard')
@@ -89,7 +88,6 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-    // 3. Memproses Logout
     public function logout(Request $request)
     {
         Auth::logout();
