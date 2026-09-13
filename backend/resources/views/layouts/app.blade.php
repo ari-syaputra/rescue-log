@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- 1. TITLE DINAMIS (Akan mengambil 'RESCUE-LOG' dari .env) -->
     <title>@yield('title', config('app.name', 'RESCUE-LOG')) - Posko Komando</title>
     <link rel="icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
     <link rel="shortcut icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
@@ -17,27 +16,26 @@
     </style>
 </head>
 
-<body x-data="{ sidebarOpen: true }" class="bg-slate-50 font-sans antialiased text-gray-800 flex h-screen overflow-hidden">
+<body x-data="{ sidebarOpen: true }" class="bg-slate-50 font-sans antialiased text-gray-800 flex flex-col h-screen overflow-hidden">
 
-    <!-- 1. SIDEBAR -->
-    @include('layouts.sidebar')
+    <!-- 1. NAVBAR DI PALING ATAS (FULL WIDTH SE-LAYAR) -->
+    @include('layouts.navbar')
 
-    <!-- 2. CONTAINER KONTEN UTAMA -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- 2. WAPPER UTAMA (SIDEBAR + KONTEN) -->
+    <div class="flex flex-1 min-h-0 overflow-hidden">
         
-        <!-- 3. NAVBAR -->
-        @include('layouts.navbar')
+        <!-- SIDEBAR -->
+        @include('layouts.sidebar')
 
-        <!-- 4. AREA KONTEN HALAMAN -->
+        <!-- AREA KONTEN HALAMAN -->
         <main class="flex-1 overflow-y-auto p-8 bg-[#f8fafc]">
             @yield('content')
         </main>
+
     </div>
 
-    <!-- CDN SweetAlert2 -->
+    <!-- CDN SweetAlert2 & Script Toast -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <!-- Global Toast Notification (Kanan Atas) -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const Toast = Swal.mixin({

@@ -11,7 +11,7 @@
             <div id="modal-panel" class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 border border-slate-100">
                 
                 <!-- HEADER MODAL -->
-                <div class="bg-blue-600 px-6 py-4 flex items-center justify-between">
+                <div class="bg-blue-700 px-6 py-4 flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="p-2 bg-white/10 rounded-xl text-white backdrop-blur-md">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
