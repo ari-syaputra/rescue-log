@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Komando;
 use App\Http\Controllers\Controller;
 use App\Models\Bencana;
 use App\Models\PengajuanKebutuhan;
-use App\Models\PengajuanKebutuhanDetail;
 use App\Models\StokInventaris;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +25,7 @@ class PengajuanKebutuhanController extends Controller
     {
         $poskoId = Auth::user()->posko_id;
 
-        $query = PengajuanKebutuhan::with(['bencana', 'details.barang', 'responder'])
+        $query = PengajuanKebutuhan::with(['bencana', 'posko', 'user'])
             ->where('posko_id', $poskoId);
 
         // Filter berdasarkan pencarian (kode pengajuan atau bencana)
@@ -56,8 +55,6 @@ class PengajuanKebutuhanController extends Controller
 
         // Data Pendukung untuk Form Modal / Select Pengajuan Baru
         $bencanaAktif   = Bencana::orderBy('jenis_bencana', 'asc')->get();
-        
-        // Ambil seluruh daftar stok_inventaris tanpa filter 'jumlah > 0'
         $barangs        = StokInventaris::orderBy('nama_barang', 'asc')->get();
 
         return view('dashboard.komando.pengajuan.index', compact(
@@ -80,25 +77,71 @@ class PengajuanKebutuhanController extends Controller
 
         // Validasi Request
         $validated = $request->validate([
-            'bencana_id'             => 'required|exists:bencana,id',
-            'catatan_komando'        => 'nullable|string|max:1000',
-            'items'                  => 'required|array|min:1',
-            'items.*.barang_id'      => 'required|exists:stok_inventaris,id',
-            'items.*.jumlah_diminta' => 'required|integer|min:1',
-            'items.*.satuan'         => 'required|string|max:50',
-            'items.*.keterangan'     => 'nullable|string|max:255',
-        ], [
-            'items.required'             => 'Minimal tambahkan 1 barang logistik yang ingin diajukan.',
-            'items.*.jumlah_diminta.min' => 'Jumlah barang yang diminta minimal 1.',
-            'items.*.barang_id.exists'   => 'Barang yang dipilih tidak tersedia di stok gudang BPBD.',
+            'bencana_id'      => 'required|exists:bencana,id',
+            'catatan_komando' => 'nullable|string|max:1000',
+            'items'           => 'nullable|array',
+            'items.*.barang_id' => 'nullable|exists:stok_inventaris,id',
+            'items.*.jumlah_diminta' => 'nullable|numeric|min:0',
         ]);
 
         $kodePengajuan = PengajuanKebutuhan::generateKode();
 
         // Transaction DB
-        $pengajuan = DB::transaction(function () use ($validated, $user, $kodePengajuan) {
-            // 1. Simpan Header Pengajuan
-            $header = PengajuanKebutuhan::create([
+        $pengajuan = DB::transaction(function () use ($request, $validated, $user, $kodePengajuan) {
+            
+            // Default 12 kolom barang ke 0
+            $dataBarang = [
+                'beras_kg'             => 0,
+                'air_minum_dus'        => 0,
+                'makanan_kaleng_pack'  => 0,
+                'makanan_bayi_pack'    => 0,
+                'minyak_goreng_liter'  => 0,
+                'popok_bayi_pcs'       => 0,
+                'popok_dewasa_pcs'     => 0,
+                'pembalut_wanita_pack' => 0,
+                'hygiene_kit_paket'    => 0,
+                'selimut_pcs'          => 0,
+                'matras_terpal_pcs'    => 0,
+                'obat_p3k_paket'       => 0,
+            ];
+
+            // Map array item dari modal jika dikirim via dynamic form
+            if ($request->has('items') && is_array($request->items)) {
+                foreach ($request->items as $item) {
+                    $jumlah = $item['jumlah_diminta'] ?? $item['jumlah'] ?? 0;
+                    $barangId = $item['barang_id'] ?? $item['stok_inventaris_id'] ?? null;
+
+                    if ($barangId && $jumlah > 0) {
+                        $stok = StokInventaris::find($barangId);
+                        if ($stok) {
+                            $nama = strtolower($stok->nama_barang);
+
+                            if (str_contains($nama, 'beras')) $dataBarang['beras_kg'] += $jumlah;
+                            elseif (str_contains($nama, 'air')) $dataBarang['air_minum_dus'] += $jumlah;
+                            elseif (str_contains($nama, 'kaleng')) $dataBarang['makanan_kaleng_pack'] += $jumlah;
+                            elseif (str_contains($nama, 'bayi') && str_contains($nama, 'makanan')) $dataBarang['makanan_bayi_pack'] += $jumlah;
+                            elseif (str_contains($nama, 'minyak')) $dataBarang['minyak_goreng_liter'] += $jumlah;
+                            elseif (str_contains($nama, 'popok') && str_contains($nama, 'bayi')) $dataBarang['popok_bayi_pcs'] += $jumlah;
+                            elseif (str_contains($nama, 'popok') && str_contains($nama, 'dewasa')) $dataBarang['popok_dewasa_pcs'] += $jumlah;
+                            elseif (str_contains($nama, 'pembalut')) $dataBarang['pembalut_wanita_pack'] += $jumlah;
+                            elseif (str_contains($nama, 'hygiene')) $dataBarang['hygiene_kit_paket'] += $jumlah;
+                            elseif (str_contains($nama, 'selimut')) $dataBarang['selimut_pcs'] += $jumlah;
+                            elseif (str_contains($nama, 'matras') || str_contains($nama, 'terpal')) $dataBarang['matras_terpal_pcs'] += $jumlah;
+                            elseif (str_contains($nama, 'obat') || str_contains($nama, 'p3k')) $dataBarang['obat_p3k_paket'] += $jumlah;
+                        }
+                    }
+                }
+            }
+
+            // Map jika form menginputkan langsung nama kolom (misal: request->beras_kg)
+            foreach (array_keys($dataBarang) as $col) {
+                if ($request->has($col) && $request->input($col) > 0) {
+                    $dataBarang[$col] = $request->input($col);
+                }
+            }
+
+            // Simpan data pengajuan langsung di header
+            return PengajuanKebutuhan::create(array_merge([
                 'kode_pengajuan'    => $kodePengajuan,
                 'posko_id'          => $user->posko_id,
                 'bencana_id'        => $validated['bencana_id'],
@@ -106,21 +149,7 @@ class PengajuanKebutuhanController extends Controller
                 'tanggal_pengajuan' => now(),
                 'status'            => 'pending',
                 'catatan_komando'   => $validated['catatan_komando'] ?? null,
-            ]);
-
-            // 2. Simpan Detail Barang
-            foreach ($validated['items'] as $item) {
-                PengajuanKebutuhanDetail::create([
-                    'pengajuan_kebutuhan_id' => $header->id,
-                    'barang_id'              => $item['barang_id'],
-                    'jumlah_diminta'         => $item['jumlah_diminta'],
-                    'jumlah_disetujui'       => 0,
-                    'satuan'                 => $item['satuan'],
-                    'keterangan'             => $item['keterangan'] ?? null,
-                ]);
-            }
-
-            return $header;
+            ], $dataBarang));
         });
 
         return redirect()->route('komando.pengajuan.index')
@@ -140,10 +169,7 @@ class PengajuanKebutuhanController extends Controller
             return back()->with('error', 'Pengajuan ini tidak dapat dibatalkan karena sudah diproses atau disetujui oleh BPBD.');
         }
 
-        DB::transaction(function () use ($pengajuan) {
-            $pengajuan->details()->delete();
-            $pengajuan->delete();
-        });
+        $pengajuan->delete();
 
         return redirect()->route('komando.pengajuan.index')
             ->with('success', 'Pengajuan kebutuhan berhasil dibatalkan.');
@@ -160,13 +186,11 @@ class PengajuanKebutuhanController extends Controller
      */
     public function logistikMasuk(Request $request)
     {
-        $query = PengajuanKebutuhan::with(['posko', 'bencana', 'details.barang', 'user'])
+        $query = PengajuanKebutuhan::with(['posko', 'bencana', 'user'])
             ->whereHas('posko', function ($q) {
-                // Disesuaikan dengan kolom 'tipe_posko' dan enum 'lapangan_kecil'
                 $q->where('tipe_posko', 'lapangan_kecil');
             });
 
-        // Filter berdasarkan pencarian kode pengajuan atau nama posko
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -177,14 +201,12 @@ class PengajuanKebutuhanController extends Controller
             });
         }
 
-        // Filter berdasarkan status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
         $pengajuans = $query->latest()->paginate(10)->withQueryString();
 
-        // Counter statistik pengajuan masuk
         $pendingCount   = PengajuanKebutuhan::whereHas('posko', fn($q) => $q->where('tipe_posko', 'lapangan_kecil'))->where('status', 'pending')->count();
         $disetujuiCount = PengajuanKebutuhan::whereHas('posko', fn($q) => $q->where('tipe_posko', 'lapangan_kecil'))->whereIn('status', ['disetujui', 'disetujui_sebagian'])->count();
         $ditolakCount   = PengajuanKebutuhan::whereHas('posko', fn($q) => $q->where('tipe_posko', 'lapangan_kecil'))->where('status', 'ditolak')->count();
@@ -203,32 +225,16 @@ class PengajuanKebutuhanController extends Controller
     public function updateStatusLogistik(Request $request, $id)
     {
         $request->validate([
-            'status'            => 'required|in:disetujui,disetujui_sebagian,ditolak',
-            'catatan_komando'   => 'nullable|string|max:1000',
-            'items'             => 'nullable|array',
-            'items.*.id'        => 'required_with:items|exists:pengajuan_kebutuhan_detail,id',
-            'items.*.disetujui' => 'required_with:items|integer|min:0',
+            'status'          => 'required|in:disetujui,disetujui_sebagian,ditolak',
+            'catatan_komando' => 'nullable|string|max:1000',
         ]);
 
-        DB::transaction(function () use ($request, $id) {
-            $pengajuan = PengajuanKebutuhan::findOrFail($id);
+        $pengajuan = PengajuanKebutuhan::findOrFail($id);
 
-            // Update header pengajuan
-            $pengajuan->update([
-                'status'            => $request->status,
-                'catatan_komando'   => $request->catatan_komando,
-                'user_id_responder' => Auth::id(),
-            ]);
-
-            // Update kuantitas barang yang disetujui pada detail item
-            if ($request->filled('items')) {
-                foreach ($request->items as $item) {
-                    PengajuanKebutuhanDetail::where('id', $item['id'])->update([
-                        'jumlah_disetujui' => $item['disetujui'],
-                    ]);
-                }
-            }
-        });
+        $pengajuan->update([
+            'status'          => $request->status,
+            'catatan_komando' => $request->catatan_komando,
+        ]);
 
         return back()->with('success', 'Status pengajuan logistik dari Posko Lapangan berhasil diperbarui.');
     }

@@ -9,7 +9,6 @@ use App\Models\StokInventaris;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class StokController extends Controller
@@ -18,12 +17,6 @@ class StokController extends Controller
     {
         $user = Auth::user();
 
-        Log::info('--- DEBUG STOK CONTROLLER INDEX ---', [
-            'user_id' => $user->id ?? 'null',
-            'posko_id' => $user->posko_id ?? 'NULL',
-        ]);
-
-        // 1. Ambil Data Pengajuan milik Posko/User ini
         $pengajuans = PengajuanKebutuhan::where(function ($q) use ($user) {
                 if (!empty($user->posko_id) && Schema::hasColumn('pengajuan_kebutuhan', 'posko_id')) {
                     $q->where('posko_id', $user->posko_id);
@@ -34,7 +27,6 @@ class StokController extends Controller
             ->latest()
             ->get();
 
-        // 2. Ambil Data Pengiriman HANYA dari tabel `pengiriman_inventaris`
         $pengirimansQuery = PengirimanInventaris::with(['pengajuan', 'posko']);
 
         if (!empty($user->posko_id)) {
@@ -48,7 +40,6 @@ class StokController extends Controller
 
         $pengirimans = $pengirimansQuery->latest()->get();
 
-        // 3. Ambil Data Stok Inventaris untuk Posko ini
         $stoksQuery = StokInventaris::query();
         if (Schema::hasColumn('stok_inventaris', 'posko_id') && !empty($user->posko_id)) {
             $stoksQuery->where(function($q) use ($user) {
@@ -62,7 +53,6 @@ class StokController extends Controller
 
     public function konfirmasiSampai($id)
     {
-        // Cari pengiriman langsung dari model PengirimanInventaris
         $pengiriman = PengirimanInventaris::with(['pengajuan'])->where('id', $id)->firstOrFail();
 
         $statusCurrent = strtolower($pengiriman->status_distribusi ?? '');
@@ -73,13 +63,13 @@ class StokController extends Controller
         DB::transaction(function () use ($pengiriman) {
             $waktuSekarang = now();
 
-            // 1. Update status di tabel pengiriman_inventaris
+            // 1. Update status pengiriman
             $pengiriman->update([
                 'status_distribusi' => 'Diterima di Posko',
                 'waktu_diterima'    => $waktuSekarang,
             ]);
 
-            // 2. Update status pengajuan kebutuhan & penambahan stok barang posko
+            // 2. Update status pengajuan & kreditkan stok ke Sub-Posko
             $p = $pengiriman->pengajuan;
             if ($p) {
                 $p->update(['status' => 'selesai']);
@@ -106,35 +96,25 @@ class StokController extends Controller
                         $jumlahFix = (float) $item['jumlah'];
 
                         $stokExisting = StokInventaris::where('nama_barang', $item['nama'])
-                            ->where(function($q) use ($poskoId) {
-                                if (!empty($poskoId)) {
-                                    $q->where('posko_id', $poskoId);
-                                }
-                            })->first();
+                            ->where('posko_id', $poskoId)
+                            ->first();
 
                         if ($stokExisting) {
-                            $stokExisting->update([
-                                'jumlah' => $stokExisting->jumlah + $jumlahFix
-                            ]);
+                            $stokExisting->increment('jumlah', $jumlahFix);
                         } else {
-                            $stokData = [
+                            StokInventaris::create([
+                                'posko_id'    => $poskoId,
                                 'nama_barang' => $item['nama'],
                                 'kategori'    => $item['kategori'],
                                 'jumlah'      => $jumlahFix,
                                 'satuan'      => $item['satuan'],
-                            ];
-
-                            if (Schema::hasColumn('stok_inventaris', 'posko_id')) {
-                                $stokData['posko_id'] = $poskoId;
-                            }
-
-                            StokInventaris::create($stokData);
+                            ]);
                         }
                     }
                 }
             }
         });
 
-        return redirect()->back()->with('success', 'Logistik berhasil dikonfirmasi sampai dan stok barang di posko telah diperbarui.');
+        return redirect()->back()->with('success', 'Logistik telah diterima dan otomatis menambahkan stok Sub-Posko.');
     }
 }

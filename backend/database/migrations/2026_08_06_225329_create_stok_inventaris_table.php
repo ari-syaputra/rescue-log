@@ -10,6 +10,11 @@ return new class extends Migration
     {
         Schema::create('stok_inventaris', function (Blueprint $table) {
             $table->id();
+            
+            // Nullable: Jika NULL berarti stok milik Gudang Utama BPBD
+            // Jika terisi posko_id berarti stok berada di Posko Komando / Sub-Posko tertentu
+            $table->foreignId('posko_id')->nullable()->constrained('poskos')->onDelete('cascade');
+            
             $table->string('nama_barang');
             $table->string('kategori');
             $table->float('jumlah', 10, 2)->default(0);

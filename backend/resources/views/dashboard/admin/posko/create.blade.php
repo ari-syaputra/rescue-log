@@ -3,215 +3,226 @@
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-    #map-placement { 
-        height: 300px; 
-        width: 100%; 
-        border-radius: 0.75rem; 
-        z-index: 10;
-    }
+    #map-sebaran { height: 380px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+    #map-placement { height: 300px; width: 100%; border-radius: 0.75rem; z-index: 10; }
 </style>
 @endpush
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6 py-4 px-4 sm:px-6">
+<div class="space-y-6">
 
     <!-- Flash Alert Success & Error -->
     @if(session('success'))
-        <div class="p-4 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
-            <span>✅ {{ session('success') }}</span>
-            <button onclick="this.parentElement.remove()" class="text-emerald-500 font-bold">&times;</button>
+        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between shadow-sm">
+            <span class="flex items-center gap-2">✅ {{ session('success') }}</span>
+            <button onclick="this.parentElement.remove()" class="text-emerald-500 font-bold hover:text-emerald-700">&times;</button>
         </div>
     @endif
     @if(session('error'))
-        <div class="p-4 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs font-semibold flex items-center justify-between">
-            <span>⚠️ {{ session('error') }}</span>
-            <button onclick="this.parentElement.remove()" class="text-rose-500 font-bold">&times;</button>
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center justify-between shadow-sm">
+            <span class="flex items-center gap-2">⚠️ {{ session('error') }}</span>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 font-bold hover:text-rose-700">&times;</button>
         </div>
     @endif
 
-    <!-- Header Halaman -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+    <!-- Header Halaman & Action Button -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-bold text-slate-900">Manajemen & Aktivasi Posko Komando Utama</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Kelola daftar Posko Komando Utama terdaftar dan hubungkan ke operasi bencana aktif.</p>
+            <h1 class="text-2xl font-bold text-slate-900">Aktivasi Posko Komando</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Kelola dan atur status aktivasi Posko Komando Utama dalam penanganan bencana.</p>
         </div>
-        <button type="button" onclick="openModalCreate()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
-            <span>➕</span> Tambah Posko Komando Baru
-        </button>
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="openModalCreate()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer">
+                <span>➕</span>
+                <span>Tambah Posko Komando</span>
+            </button>
+        </div>
     </div>
 
-    <!-- Banner Info Bencana Aktif -->
-    @if($bencana)
-        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-5 rounded-2xl shadow-md border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Stat Cards Metrik -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-900 uppercase tracking-wider">Target Bencana Perlu Setup</span>
-                <h2 class="text-lg font-bold text-white mt-1">{{ $bencana->jenis_bencana }} — <span class="text-slate-300 font-normal">{{ $bencana->lokasi_bencana }}</span></h2>
+                <p class="text-xs font-medium text-slate-400">Total Posko</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ count($availablePosko) }}</h3>
+                <p class="text-[11px] text-slate-400 mt-1">Semua Posko Terdaftar</p>
             </div>
-            <div class="text-xs bg-white/10 px-4 py-2 rounded-xl border border-white/10">
-                <span>Estimasi Pengungsi: <strong>{{ number_format($bencana->estimasi_pengungsi_awal) }} Jiwa</strong></span>
+            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-building-office-2 class="w-5 h-5" />
             </div>
         </div>
-    @endif
 
-    <!-- Daftar Posko Komando Terdaftar -->
-    <div class="space-y-4">
-        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Daftar Posko Komando Terdaftar ({{ count($availablePosko) }})
-        </h3>
-
-        @forelse($availablePosko as $posko)
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-indigo-300 transition-all">
-                <div class="space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 font-bold text-[10px] rounded uppercase">POSKO KOMANDO</span>
-                        @if($posko->status === 'aktif')
-                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded uppercase">AKTIF OPERASI</span>
-                        @else
-                            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold text-[10px] rounded uppercase">STANDBY</span>
-                        @endif
-                    </div>
-                    
-                    <div>
-                        <h4 class="text-base font-bold text-slate-900">{{ $posko->nama_posko }}</h4>
-                        <p class="text-xs text-slate-500">📍 {{ $posko->lokasi ?? 'Lokasi Belum Diatur' }}</p>
-                    </div>
-
-                    <!-- Informasi Akun User Komandan dari DB -->
-                    <div class="flex flex-wrap items-center gap-3 text-xs">
-                        <span class="bg-slate-100 px-2.5 py-1 rounded-lg text-slate-700">
-                            👤 Komandan: <strong>{{ $posko->penanggung_jawab }}</strong> ({{ $posko->kontak_hp ?? '-' }})
-                        </span>
-                        <span class="bg-indigo-50 px-2.5 py-1 rounded-lg text-indigo-700 font-mono border border-indigo-100">
-                            ✉️ Email Login: <strong>{{ $posko->user->email ?? 'Belum ada akun' }}</strong>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Tombol Pilih Penempatan & Aktifkan (Muncul jika ada bencana) -->
-                @if($bencana && $posko->status !== 'aktif')
-                    <button type="button" 
-                            onclick="openModalPlacement({{ $posko->id }}, '{{ addslashes($posko->nama_posko) }}', '{{ addslashes($posko->lokasi ?? '') }}', {{ $posko->latitude ?? ($bencana->koordinat_operasional_lat ?? -7.7956) }}, {{ $posko->longitude ?? ($bencana->koordinat_operasional_lng ?? 110.3695) }})"
-                            class="w-full md:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        📍 Pilih Penempatan GIS & Aktifkan
-                    </button>
-                @endif
-            </div>
-        @empty
-            <div class="bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center space-y-3">
-                <span class="text-3xl">🏛️</span>
-                <h4 class="text-sm font-bold text-slate-800">Belum Ada Posko Komando Terdaftar</h4>
-                <p class="text-xs text-slate-500 max-w-md mx-auto">
-                    Silakan daftarkan Posko Komando Utama pertama beserta akun login Komandannya.
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-medium text-slate-400">Posko Aktif</p>
+                <h3 class="text-2xl font-black text-emerald-600 mt-1">{{ $availablePosko->where('status', 'aktif')->count() }}</h3>
+                <p class="text-[11px] text-emerald-500 font-medium mt-1">
+                    {{ count($availablePosko) > 0 ? round(($availablePosko->where('status', 'aktif')->count() / count($availablePosko)) * 100) : 0 }}% dari total posko
                 </p>
-                <button type="button" onclick="openModalCreate()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl cursor-pointer">
-                    + Tambah Posko Komando Baru
-                </button>
             </div>
-        @endforelse
-    </div>
-
-</div>
-
-<!-- MODAL 1: REGISTRASI POSKO KOMANDO & AKUN KOMANDAN BARU -->
-<div id="modalCreatePosko" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
-        <div class="flex items-center justify-between border-b pb-3">
-            <h3 class="text-base font-bold text-slate-900">Registrasi Posko Komando & Akun Komandan Baru</h3>
-            <button type="button" onclick="closeModalCreate()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-check-circle class="w-5 h-5" />
+            </div>
         </div>
 
-        <form action="{{ route('admin.posko.store') }}" method="POST" class="space-y-4">
-            @csrf
-            @if($bencana)
-                <input type="hidden" name="bencana_id" value="{{ $bencana->id }}">
-            @endif
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Posko Komando *</label>
-                    <input type="text" name="nama_posko" value="{{ old('nama_posko') }}" required placeholder="Posko Komando Lapangan Sleman" class="w-full px-3 py-2 border rounded-xl text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Komandan / Penanggung Jawab *</label>
-                    <input type="text" name="penanggung_jawab" value="{{ old('penanggung_jawab') }}" required placeholder="Mayor Budi Santoso" class="w-full px-3 py-2 border rounded-xl text-xs">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">No. HP / WA Darurat *</label>
-                    <input type="text" name="kontak_hp" value="{{ old('kontak_hp') }}" required placeholder="08xxxxxxxxxx" class="w-full px-3 py-2 bg-white border rounded-xl text-xs">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">Email Login *</label>
-                    <input type="email" name="email" value="{{ old('email') }}" required placeholder="komando@rescuelog.id" class="w-full px-3 py-2 bg-white border border-indigo-300 rounded-xl text-xs font-medium">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">Password Login *</label>
-                    <input type="password" name="password" required placeholder="Password Akun" class="w-full px-3 py-2 bg-white border border-indigo-300 rounded-xl text-xs">
-                </div>
-            </div>
-
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Alamat Fisik Posko *</label>
-                <textarea name="lokasi" required rows="2" placeholder="Alamat lengkap posko..." class="w-full px-3 py-2 border rounded-xl text-xs">{{ old('lokasi', $bpbd->alamat_kantor ?? '') }}</textarea>
+                <p class="text-xs font-medium text-slate-400">Standby / Siaga</p>
+                <h3 class="text-2xl font-black text-amber-500 mt-1">{{ $availablePosko->where('status', '!=', 'aktif')->count() }}</h3>
+                <p class="text-[11px] text-slate-400 mt-1">Siap dialokasikan</p>
             </div>
-
-            <div class="pt-3 border-t flex justify-end gap-2">
-                <button type="button" onclick="closeModalCreate()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Batal</button>
-                <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer">Simpan Posko Komando</button>
+            <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-clock class="w-5 h-5" />
             </div>
-        </form>
-    </div>
-</div>
-
-<!-- MODAL 2: PILIH PENEMPATAN GIS & AKTIFKAN BENCANA -->
-@if($bencana)
-<div id="modalPlacement" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[95vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b pb-3">
-            <div>
-                <h3 class="text-base font-bold text-slate-900">Atur Penempatan GIS Posko</h3>
-                <p class="text-xs text-slate-500">Posko: <strong id="modal_posko_title"></strong></p>
-            </div>
-            <button type="button" onclick="closeModalPlacement()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
         </div>
 
-        <form action="{{ route('admin.posko.activate-existing') }}" method="POST" class="space-y-4">
-            @csrf
-            <input type="hidden" name="bencana_id" value="{{ $bencana->id }}">
-            <input type="hidden" name="posko_id" id="place_posko_id">
-
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Alamat Deskriptif Lokasi Posko *</label>
-                <textarea name="lokasi" id="place_lokasi" required rows="2" class="w-full px-3 py-2 border rounded-xl text-xs"></textarea>
+                <p class="text-xs font-medium text-slate-400">Target Bencana</p>
+                <h3 class="text-sm font-bold text-slate-900 mt-1 truncate max-w-[120px]">{{ $bencana->jenis_bencana ?? 'Tidak Ada' }}</h3>
+                <p class="text-[11px] text-slate-400 mt-1 truncate max-w-[120px]">{{ $bencana->lokasi_bencana ?? 'Operasi Standby' }}</p>
             </div>
-
-            <!-- Leaflet Interactive Map GIS -->
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Pilih Titik Koordinat (Klik / Geser Marker Pada Peta)</label>
-                <div id="map-placement"></div>
+            <div class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
+                <x-fas-house-crack class="w-4 h-4" />
             </div>
-
-            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase">Latitude (Lat)</label>
-                    <input type="text" name="latitude" id="place_lat" readonly required class="w-full bg-transparent border-0 p-0 text-xs font-mono font-bold text-slate-800">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase">Longitude (Lng)</label>
-                    <input type="text" name="longitude" id="place_lng" readonly required class="w-full bg-transparent border-0 p-0 text-xs font-mono font-bold text-slate-800">
-                </div>
-            </div>
-
-            <div class="pt-3 border-t flex justify-end gap-2">
-                <button type="button" onclick="closeModalPlacement()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Batal</button>
-                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer">Konfirmasi & Aktifkan Posko</button>
-            </div>
-        </form>
+        </div>
     </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+            </div>
+            <input type="text" id="searchPosko" onkeyup="filterPoskoTable()" placeholder="Cari posko..." 
+                   class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition">
+        </div>
+
+        <div class="flex items-center gap-2">
+            <select id="filterStatus" onchange="filterPoskoTable()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                <option value="all">Semua Status</option>
+                <option value="aktif">Aktif Operasi</option>
+                <option value="standby">Standby / Nonaktif</option>
+            </select>
+            <button type="button" onclick="resetFilter()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition flex items-center gap-1">
+                <span>🔄</span> Reset Filter
+            </button>
+        </div>
+    </div>
+
+    <!-- Split Grid: Table (Left) & Live GIS Map (Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-slate-900">Daftar Posko Komando</h3>
+                <span class="text-xs text-slate-400 font-semibold">{{ count($availablePosko) }} Posko</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="poskoTable">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th class="py-3 px-4 text-center w-10">NO</th>
+                            <th class="py-3 px-4">NAMA POSKO</th>
+                            <th class="py-3 px-4">PENANGGUNG JAWAB</th>
+                            <th class="py-3 px-4">AKUN LOGIN</th>
+                            <th class="py-3 px-4 text-center">STATUS</th>
+                            <th class="py-3 px-4 text-center">AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                        @forelse($availablePosko as $index => $posko)
+                            <tr class="hover:bg-slate-50/80 transition-all posko-row" data-status="{{ $posko->status }}">
+                                <td class="py-3.5 px-4 text-center font-semibold text-slate-400">{{ $index + 1 }}</td>
+                                <td class="py-3.5 px-4">
+                                    <span class="font-bold text-slate-900 block">{{ $posko->nama_posko }}</span>
+                                    <span class="text-[10px] text-slate-400 block mt-0.5">📍 {{ Str::limit($posko->lokasi ?? 'Lokasi Belum Diatur', 25) }}</span>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="font-semibold text-slate-800 block">{{ $posko->penanggung_jawab }}</span>
+                                    <span class="text-[10px] text-slate-400">📞 {{ $posko->kontak_hp ?? '-' }}</span>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded text-[11px]">
+                                        {{ $posko->user->email ?? 'Belum terikat' }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    @if($posko->status === 'aktif')
+                                        <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-full">
+                                            AKTIF
+                                        </span>
+                                    @else
+                                        <span class="px-2.5 py-0.5 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-full">
+                                            STANDBY
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <!-- Tombol Detail Posko -->
+                                        <a href="{{ route('admin.posko.show', $posko->id) }}" 
+                                        class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition flex items-center gap-1 cursor-pointer">
+                                            <span>👁️</span> Detail
+                                        </a>
+
+                                        @if($bencana && $posko->status !== 'aktif')
+                                            <button type="button" 
+                                                    onclick="openModalPlacement({{ $posko->id }}, '{{ addslashes($posko->nama_posko) }}', '{{ addslashes($posko->lokasi ?? '') }}', {{ $posko->latitude ?? ($bencana->koordinat_operasional_lat ?? -7.7956) }}, {{ $posko->longitude ?? ($bencana->koordinat_operasional_lng ?? 110.3695) }})"
+                                                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-xl transition shadow-sm cursor-pointer">
+                                                📍 Aktifkan
+                                            </button>
+                                        @elseif($posko->status === 'aktif')
+                                            <span class="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-lg">Beroperasi</span>
+                                        @else
+                                            <span class="text-[11px] text-slate-400 font-medium">Standby</span>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="py-12 px-4 text-center">
+                                    <div class="max-w-xs mx-auto space-y-2">
+                                        <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                                            <x-heroicon-s-inbox class="w-5 h-5" />
+                                        </div>
+                                        <h4 class="text-xs font-bold text-slate-800">Belum ada Posko Komando</h4>
+                                        <p class="text-[11px] text-slate-400">Silakan tambahkan data posko komando baru.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Live GIS Map Card -->
+        <div class="lg:col-span-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-slate-900">Peta Sebaran Posko</h3>
+                <span class="text-[11px] text-slate-400">Live GIS Layer</span>
+            </div>
+            <div id="map-sebaran" class="border border-slate-200 shadow-inner"></div>
+            <div class="flex items-center justify-around text-[11px] font-semibold text-slate-600 pt-1">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+                    <span>Aktif: {{ $availablePosko->where('status', 'aktif')->count() }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span>
+                    <span>Siaga: {{ $availablePosko->where('status', '!=', 'aktif')->count() }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
-@endif
+
+<!-- INCLUDE PARTIAL MODALS -->
+@include('dashboard.admin.posko.modals.create-modal')
+@include('dashboard.admin.posko.modals.placement-modal')
 
 @endsection
 
@@ -225,22 +236,49 @@
         document.getElementById('modalCreatePosko').classList.add('hidden');
     }
 
-    // PENANGANAN OTOMATIS JIKA PROSES SIMPAN GAGAL / ACCIDENTAL VALIDATION ERROR
+    function filterPoskoTable() {
+        const searchInput = document.getElementById('searchPosko').value.toLowerCase();
+        const filterStatus = document.getElementById('filterStatus').value;
+        const rows = document.querySelectorAll('.posko-row');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            const status = row.getAttribute('data-status');
+            const matchesSearch = text.includes(searchInput);
+            const matchesStatus = (filterStatus === 'all') || 
+                                  (filterStatus === 'aktif' && status === 'aktif') || 
+                                  (filterStatus === 'standby' && status !== 'aktif');
+            row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+        });
+    }
+
+    function resetFilter() {
+        document.getElementById('searchPosko').value = '';
+        document.getElementById('filterStatus').value = 'all';
+        filterPoskoTable();
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
+        const defaultLat = {{ $bencana->koordinat_operasional_lat ?? -7.7956 }};
+        const defaultLng = {{ $bencana->koordinat_operasional_lng ?? 110.3695 }};
+
+        const mapSebaran = L.map('map-sebaran').setView([defaultLat, defaultLng], 11);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(mapSebaran);
+
+        @foreach($availablePosko as $p)
+            @if($p->latitude && $p->longitude)
+                L.marker([{{ $p->latitude }}, {{ $p->longitude }}])
+                    .addTo(mapSebaran)
+                    .bindPopup("<b>{{ addslashes($p->nama_posko) }}</b><br>PJ: {{ addslashes($p->penanggung_jawab) }}<br>Status: {{ strtoupper($p->status) }}");
+            @endif
+        @endforeach
+
         @if ($errors->any())
             openModalCreate();
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal Menyimpan Posko',
-                    html: '<ul class="text-left text-xs text-red-600 space-y-1">' +
-                        @foreach ($errors->all() as $error)
-                            '<li>• {{ $error }}</li>' +
-                        @endforeach
-                        '</ul>',
-                    confirmButtonColor: '#4f46e5'
-                });
-            }
         @endif
     });
 
@@ -255,7 +293,6 @@
 
         document.getElementById('modalPlacement').classList.remove('hidden');
 
-        // Render Leaflet Map
         setTimeout(() => {
             if (!mapPlacement) {
                 mapPlacement = L.map('map-placement').setView([lat, lng], 13);
@@ -288,6 +325,58 @@
 
     function closeModalPlacement() {
         document.getElementById('modalPlacement').classList.add('hidden');
+    }
+
+    /* Modal Detail & Fetch Stok Logistik */
+    function openModalDetail(posko) {
+        document.getElementById('detail_nama_posko').innerText = posko.nama_posko;
+        document.getElementById('detail_pj').innerText = posko.penanggung_jawab;
+        document.getElementById('detail_hp').innerText = '📞 ' + (posko.kontak_hp || '-');
+        document.getElementById('detail_email').innerText = posko.user ? posko.user.email : 'Belum Terikat';
+        document.getElementById('detail_lokasi').innerText = '📍 ' + (posko.lokasi || 'Belum Diatur');
+
+        const badgeContainer = document.getElementById('detail_status_badge');
+        if (posko.status === 'aktif') {
+            badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-full">AKTIF OPERASI</span>`;
+        } else {
+            badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-full">STANDBY</span>`;
+        }
+
+        const tbody = document.getElementById('detail_stok_body');
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Memuat data stok logistik...</td></tr>`;
+
+        fetch(`/api/posko/${posko.id}/stok`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('detail_total_item').innerText = `${data.length} Item Logistik`;
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400 italic">Belum ada stok logistik di posko ini.</td></tr>`;
+                    return;
+                }
+
+                let rows = '';
+                data.forEach((item, idx) => {
+                    rows += `
+                        <tr class="hover:bg-white transition">
+                            <td class="py-2.5 px-3.5 text-center font-semibold text-slate-400">${idx + 1}</td>
+                            <td class="py-2.5 px-3.5 font-bold text-slate-800">${item.nama_barang}</td>
+                            <td class="py-2.5 px-3.5"><span class="px-2 py-0.5 bg-slate-200/60 rounded text-[10px] font-semibold">${item.kategori}</span></td>
+                            <td class="py-2.5 px-3.5 text-right font-mono font-bold text-indigo-600">${item.jumlah}</td>
+                            <td class="py-2.5 px-3.5 font-semibold text-slate-500">${item.satuan}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = rows;
+            })
+            .catch(() => {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-500">Gagal mengambil data stok.</td></tr>`;
+            });
+
+        document.getElementById('modalDetailPosko').classList.remove('hidden');
+    }
+
+    function closeModalDetail() {
+        document.getElementById('modalDetailPosko').classList.add('hidden');
     }
 </script>
 @endpush

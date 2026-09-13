@@ -3,28 +3,49 @@
 namespace App\Http\Controllers\Komando;
 
 use App\Http\Controllers\Controller;
-use App\Models\Armada;
 use App\Models\PengajuanKebutuhan;
-use App\Models\PengajuanKebutuhanDetail;
-use App\Models\PengirimanInventaris;
+use App\Models\StokPosko;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class KomandoLogistikController extends Controller
 {
     /**
-     * Menampilkan pengajuan logistik masuk dari Sub-Posko
+     * Menampilkan Stok Logistik Posko Komando & Riwayat Suplai dari BPBD
      */
     public function index(Request $request)
     {
-        $komandoPoskoId = Auth::user()->posko_id;
+        $poskoId = Auth::user()->posko_id;
 
-        $query = PengajuanKebutuhan::with(['user', 'posko', 'details.barang'])
-            ->whereHas('posko', function ($q) use ($komandoPoskoId) {
-                $q->where('parent_id', $komandoPoskoId)
-                  ->where('tipe_posko', 'lapangan_kecil');
-            })
+        // 1. Ambil Stok Real-Time dari Tabel stok_posko
+        $stokDb = StokPosko::with('barang')
+            ->where('posko_id', $poskoId)
+            ->get();
+
+        // 2. Ambil Tambahan Suplai dari BPBD (Jika ada)
+        $pengajuanDisetujui = PengajuanKebutuhan::where('posko_id', $poskoId)
+            ->whereIn('status', ['disetujui', 'dalam_pengiriman', 'selesai'])
+            ->get();
+
+        // Gabungkan Stok Posko + Pengajuan Tambahan dari BPBD
+        $stokLogistik = [
+            'beras_kg'             => (float) ($stokDb->firstWhere('barang.nama_barang', 'Beras')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('beras_kg'),
+            'air_minum_dus'        => (float) ($stokDb->firstWhere('barang.nama_barang', 'Air Minum')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('air_minum_dus'),
+            'makanan_kaleng_pack'  => (float) ($stokDb->firstWhere('barang.nama_barang', 'Makanan Kaleng')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('makanan_kaleng_pack'),
+            'makanan_bayi_pack'    => (float) ($stokDb->firstWhere('barang.nama_barang', 'Makanan Bayi')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('makanan_bayi_pack'),
+            'minyak_goreng_liter'  => (float) ($stokDb->firstWhere('barang.nama_barang', 'Minyak Goreng')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('minyak_goreng_liter'),
+            'popok_bayi_pcs'       => (float) ($stokDb->firstWhere('barang.nama_barang', 'Popok Bayi')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('popok_bayi_pcs'),
+            'popok_dewasa_pcs'     => (float) ($stokDb->firstWhere('barang.nama_barang', 'Popok Dewasa')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('popok_dewasa_pcs'),
+            'pembalut_wanita_pack' => (float) ($stokDb->firstWhere('barang.nama_barang', 'Pembalut Wanita')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('pembalut_wanita_pack'),
+            'hygiene_kit_paket'    => (float) ($stokDb->firstWhere('barang.nama_barang', 'Hygiene Kit')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('hygiene_kit_paket'),
+            'selimut_pcs'          => (float) ($stokDb->firstWhere('barang.nama_barang', 'Selimut')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('selimut_pcs'),
+            'matras_terpal_pcs'    => (float) ($stokDb->firstWhere('barang.nama_barang', 'Matras Terpal')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('matras_terpal_pcs'),
+            'obat_p3k_paket'       => (float) ($stokDb->firstWhere('barang.nama_barang', 'Obat P3K')->jumlah_stok ?? 0) + $pengajuanDisetujui->sum('obat_p3k_paket'),
+        ];
+
+        // 3. Daftar Riwayat Suplai Logistik BPBD
+        $query = PengajuanKebutuhan::with(['bencana', 'posko.bencana', 'user'])
+            ->where('posko_id', $poskoId)
             ->latest();
 
         if ($request->filled('search')) {
@@ -36,73 +57,8 @@ class KomandoLogistikController extends Controller
             $query->where('status', $request->status);
         }
 
-        $pengajuans = $query->paginate(10)->withQueryString();
-        $armadas = Armada::where('status', 'tersedia')->get();
+        $riwayatSuplai = $query->paginate(10)->withQueryString();
 
-        return view('dashboard.komando.logistik.index', compact('pengajuans', 'armadas'));
-    }
-
-    /**
-     * ACC Full / Partial Pengajuan dari Sub-Posko
-     */
-    public function approve(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'status'            => 'required|in:disetujui,disetujui_sebagian,ditolak',
-            'catatan_komando'   => 'nullable|string',
-            'items'             => 'nullable|array',
-            'items.*.id'        => 'required_with:items|exists:pengajuan_kebutuhan_detail,id',
-            'items.*.disetujui' => 'required_with:items|numeric|min:0',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $pengajuan = PengajuanKebutuhan::findOrFail($id);
-
-            // Update Status Header
-            $pengajuan->update([
-                'status'            => $validated['status'],
-                'catatan_komando'   => $validated['catatan_komando'] ?? null,
-                'user_id_responder' => Auth::id(),
-            ]);
-
-            $totalJumlahAcc = 0;
-
-            // Update Jumlah Disetujui per Barang (Jika Partial)
-            if (!empty($validated['items'])) {
-                foreach ($validated['items'] as $item) {
-                    PengajuanKebutuhanDetail::where('id', $item['id'])->update([
-                        'jumlah_disetujui' => $item['disetujui'],
-                    ]);
-                    $totalJumlahAcc += $item['disetujui'];
-                }
-            } else {
-                // Jika ACC Full, set jumlah_disetujui = jumlah_diminta
-                foreach ($pengajuan->details as $detail) {
-                    $detail->update(['jumlah_disetujui' => $detail->jumlah_diminta]);
-                    $totalJumlahAcc += $detail->jumlah_diminta;
-                }
-            }
-
-            // Catat ke PengirimanInventaris untuk Menunggu Penjadwalan Armada
-            if ($validated['status'] !== 'ditolak') {
-                PengirimanInventaris::updateOrCreate(
-                    ['pengajuan_id' => $pengajuan->id],
-                    [
-                        'posko_id'          => $pengajuan->posko_id,
-                        'jumlah_dikirim'    => $totalJumlahAcc,
-                        'status_distribusi' => 'Menunggu Dijadwalkan',
-                        'keterangan'        => 'ACC Logistik - ' . $pengajuan->kode_pengajuan,
-                    ]
-                );
-            }
-
-            DB::commit();
-            return redirect()->back()->with('success', "Pengajuan ({$pengajuan->kode_pengajuan}) berhasil diproses.");
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal memproses persetujuan: ' . $e->getMessage());
-        }
+        return view('dashboard.komando.logistik.index', compact('stokLogistik', 'riwayatSuplai'));
     }
 }

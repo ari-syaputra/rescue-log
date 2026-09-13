@@ -60,9 +60,13 @@
     <!-- GRID UTAMA: MAPS GIS & DASHBOARD STATUS -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- SISI KIRI: TRACKING STATUS ARMADA & PENGIRIMAN (5 COL) -->
+        <!-- SISI KIRI: TRACKING STATUS ARMADA & PENUGASAN PENGIRIMAN (5 COL) -->
         <div class="lg:col-span-5 space-y-4">
-            <x-komando.distribusi.active-shipments :pengirimans="$pengirimans" />
+            <x-komando.distribusi.active-shipments 
+                :pengirimans="$pengirimans" 
+                :pengajuan-siap-kirim="$pengajuanSiapKirim"
+                :armadas="$armadas" 
+            />
         </div>
 
         <!-- SISI KANAN: LIVE MAPS VISUALIZER (7 COL) -->

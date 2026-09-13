@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('posko_id')->nullable()->constrained('poskos')->onDelete('set null');
             $table->foreignId('bencana_id')->nullable()->constrained('bencana')->onDelete('set null');
-            
+
             // -------------------------------------------------------------
             // 12 KOLOM NAMA BARANG EKSPLISIT (Sesuai Output Model AI)
             // -------------------------------------------------------------
@@ -38,12 +38,14 @@ return new class extends Migration
                 'disetujui', 
                 'disetujui_sebagian', 
                 'ditolak', 
+                'dieskalasi_provinsi', // Status baru untuk eskalasi ke Provinsi
                 'dalam_pengiriman', 
                 'selesai'
             ])->default('pending');
 
-            $table->text('catatan_posko')->nullable();   // Catatan dari petugas lapangan
-            $table->text('catatan_komando')->nullable(); // Catatan dari komando
+            $table->text('catatan_posko')->nullable();    // Catatan dari petugas lapangan
+            $table->text('catatan_komando')->nullable();  // Catatan dari komando/BPBD
+            $table->text('catatan_eskalasi')->nullable(); // Catatan alasan eskalasi ke provinsi
             $table->timestamps();
         });
     }

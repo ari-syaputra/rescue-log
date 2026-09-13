@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barang;
+use App\Models\PengajuanKebutuhan;
 use App\Models\StokInventaris;
 use App\Models\PengirimanInventaris;
 use App\Models\Posko;
+use App\Models\StokPosko;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,113 +16,134 @@ use Illuminate\Support\Facades\Auth;
 class DistribusiController extends Controller
 {
     /**
-     * Menampilkan Halaman Riwayat Distribusi
+     * Menampilkan Daftar Pengajuan Logistik dari Posko Komando & Riwayat Distribusi BPBD
      */
     public function index()
     {
+        $pengajuanMasuk = PengajuanKebutuhan::with(['posko', 'user', 'bencana'])
+            ->latest()
+            ->get();
+
+        $stokGudang = StokInventaris::all()->keyBy('nama_barang');
+
         $riwayatPengiriman = PengirimanInventaris::with(['stokInventaris', 'posko', 'user'])
             ->latest()
             ->get();
 
-        $stokInventaris = StokInventaris::where('jumlah', '>', 0)->get();
-        $poskoKomando = Posko::where('tipe_posko', 'komando')->get();
+        $poskoKomandoList = Posko::where('tipe_posko', 'komando')->get();
 
-        return view('dashboard.admin.distribusi.index', compact('riwayatPengiriman', 'stokInventaris', 'poskoKomando'));
+        return view('dashboard.admin.distribusi.index', compact(
+            'pengajuanMasuk', 
+            'stokGudang', 
+            'riwayatPengiriman', 
+            'poskoKomandoList'
+        ));
     }
 
     /**
-     * Memproses Pengiriman Barang Multi-Item ke Posko Komando
+     * Menyetujui Pengajuan Logistik dari Posko Komando & Potong Stok Gudang Utama BPBD -> Tambah Stok Posko
      */
-    public function store(Request $request)
+    public function approve(Request $request, $id)
     {
-        $validated = $request->validate([
-            'posko_id'                     => 'required|exists:poskos,id',
-            'keterangan'                   => 'nullable|string',
-            'items'                        => 'required|array|min:1',
-            'items.*.stok_inventaris_id'   => 'required|exists:stok_inventaris,id',
-            'items.*.jumlah_dikirim'       => 'required|integer|min:1',
-        ]);
+        $pengajuan = PengajuanKebutuhan::findOrFail($id);
 
-        return DB::transaction(function () use ($validated) {
-            foreach ($validated['items'] as $itemData) {
-                $barang = StokInventaris::findOrFail($itemData['stok_inventaris_id']);
-
-                if ($barang->jumlah < $itemData['jumlah_dikirim']) {
-                    return back()->with('error', "Stok untuk barang {$barang->nama_barang} tidak mencukupi!");
-                }
-
-                // 1. Kurangi stok gudang
-                $barang->decrement('jumlah', $itemData['jumlah_dikirim']);
-
-                // 2. Catat transaksi pengiriman
-                PengirimanInventaris::create([
-                    'stok_inventaris_id' => $itemData['stok_inventaris_id'],
-                    'posko_id'           => $validated['posko_id'],
-                    'user_id'            => Auth::id(),
-                    'jumlah_dikirim'     => $itemData['jumlah_dikirim'],
-                    'keterangan'         => $validated['keterangan'] ?? null,
-                ]);
-            }
-
-            return back()->with('success', 'Pengiriman logistik berhasil diproses.');
-        });
-    }
-
-    /**
-     * Update Pengiriman tunggal (Batas Maksimal 20 Menit)
-     */
-    public function update(Request $request, $id)
-    {
-        $pengiriman = PengirimanInventaris::findOrFail($id);
-
-        if (!$pengiriman->canBeEditedOrDeleted()) {
-            return back()->with('error', 'Perubahan ditolak! Waktu batas edit (20 menit) telah habis.');
+        if (!in_array($pengajuan->status, ['pending', 'dieskalasi_provinsi'])) {
+            return back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
         }
 
-        $validated = $request->validate([
-            'posko_id'       => 'required|exists:poskos,id',
-            'jumlah_dikirim' => 'required|integer|min:1',
-            'keterangan'     => 'nullable|string',
-        ]);
+        return DB::transaction(function () use ($pengajuan, $request) {
+            // Pemetaan 12 item eksplisit pengajuan
+            $itemsMapping = [
+                'Beras'           => $pengajuan->beras_kg,
+                'Air Minum'       => $pengajuan->air_minum_dus,
+                'Makanan Kaleng'  => $pengajuan->makanan_kaleng_pack,
+                'Makanan Bayi'    => $pengajuan->makanan_bayi_pack,
+                'Minyak Goreng'   => $pengajuan->minyak_goreng_liter,
+                'Popok Bayi'      => $pengajuan->popok_bayi_pcs,
+                'Popok Dewasa'    => $pengajuan->popok_dewasa_pcs,
+                'Pembalut Wanita' => $pengajuan->pembalut_wanita_pack,
+                'Hygiene Kit'     => $pengajuan->hygiene_kit_paket,
+                'Selimut'         => $pengajuan->selimut_pcs,
+                'Matras Terpal'   => $pengajuan->matras_terpal_pcs,
+                'Obat P3K'        => $pengajuan->obat_p3k_paket,
+            ];
 
-        return DB::transaction(function () use ($pengiriman, $validated) {
-            $barang = StokInventaris::findOrFail($pengiriman->stok_inventaris_id);
-            $selisih = $validated['jumlah_dikirim'] - $pengiriman->jumlah_dikirim;
-
-            if ($selisih > 0 && $barang->jumlah < $selisih) {
-                return back()->with('error', 'Stok gudang tidak mencukupi untuk penambahan jumlah pengiriman.');
+            // 1. Cek Ketersediaan Stok di Gudang Utama BPBD
+            $kurangStok = [];
+            foreach ($itemsMapping as $namaBarang => $jumlahMinta) {
+                if ($jumlahMinta > 0) {
+                    $stok = StokInventaris::where('nama_barang', 'LIKE', "%{$namaBarang}%")->first();
+                    if (!$stok || $stok->jumlah < $jumlahMinta) {
+                        $kurangStok[] = $namaBarang;
+                    }
+                }
             }
 
-            $barang->jumlah -= $selisih;
-            $barang->save();
+            if (count($kurangStok) > 0) {
+                $daftarBarang = implode(', ', $kurangStok);
+                return back()->with('error', "Stok Gudang Utama BPBD tidak mencukupi untuk: {$daftarBarang}. Silakan lakukan Eskalasi ke BPBD Provinsi.");
+            }
 
-            $pengiriman->update([
-                'posko_id'       => $validated['posko_id'],
-                'jumlah_dikirim' => $validated['jumlah_dikirim'],
-                'keterangan'     => $validated['keterangan'] ?? null,
+            // 2. Potong Stok Gudang Utama BPBD, Catat Pengiriman, & Tambah Stok ke Posko Komando
+            foreach ($itemsMapping as $namaBarang => $jumlahMinta) {
+                if ($jumlahMinta > 0) {
+                    // Potong Stok Gudang BPBD
+                    $stok = StokInventaris::where('nama_barang', 'LIKE', "%{$namaBarang}%")->first();
+                    $stok->decrement('jumlah', $jumlahMinta);
+
+                    // Catat Log Pengiriman
+                    PengirimanInventaris::create([
+                        'stok_inventaris_id' => $stok->id,
+                        'posko_id'           => $pengajuan->posko_id,
+                        'pengajuan_id'       => $pengajuan->id,
+                        'user_id'            => Auth::id(),
+                        'jumlah_dikirim'     => $jumlahMinta,
+                        'status_distribusi'  => 'Disetujui BPBD',
+                        'keterangan'         => 'Disetujui dari pengajuan kode: ' . $pengajuan->kode_pengajuan,
+                    ]);
+
+                    // Tambah/Update Stok di Posko Komando (stok_posko)
+                    $barang = Barang::where('nama_barang', 'LIKE', "%{$namaBarang}%")->first();
+                    if ($barang) {
+                        StokPosko::updateOrCreate(
+                            [
+                                'posko_id'  => $pengajuan->posko_id,
+                                'barang_id' => $barang->id,
+                            ],
+                            [
+                                'jumlah_stok' => DB::raw("jumlah_stok + {$jumlahMinta}")
+                            ]
+                        );
+                    }
+                }
+            }
+
+            // 3. Update status pengajuan
+            $pengajuan->update([
+                'status'          => 'disetujui',
+                'catatan_komando' => $request->catatan_komando ?? 'Permintaan disetujui penuh oleh BPBD Kab/Kota.',
             ]);
 
-            return back()->with('success', 'Data pengiriman berhasil diperbarui.');
+            return back()->with('success', "Pengajuan {$pengajuan->kode_pengajuan} berhasil disetujui. Logistik otomatis ditambahkan ke stok Posko Komando.");
         });
     }
 
     /**
-     * Batalkan Pengiriman (Batas Maksimal 20 Menit)
+     * Eskalasi Pengajuan Logistik ke BPBD Provinsi
      */
-    public function destroy($id)
+    public function eskalasi(Request $request, $id)
     {
-        $pengiriman = PengirimanInventaris::findOrFail($id);
+        $request->validate([
+            'catatan_eskalasi' => 'required|string',
+        ]);
 
-        if (!$pengiriman->canBeEditedOrDeleted()) {
-            return back()->with('error', 'Pembatalan ditolak! Waktu batas pembatalan (20 menit) telah habis.');
-        }
+        $pengajuan = PengajuanKebutuhan::findOrFail($id);
 
-        return DB::transaction(function () use ($pengiriman) {
-            $barang = StokInventaris::findOrFail($pengiriman->stok_inventaris_id);
-            $barang->increment('jumlah', $pengiriman->jumlah_dikirim);
-            $pengiriman->delete();
+        $pengajuan->update([
+            'status'           => 'dieskalasi_provinsi',
+            'catatan_eskalasi' => $request->catatan_eskalasi,
+        ]);
 
-            return back()->with('success', 'Pengiriman berhasil dibatalkan & stok dikembalikan ke gudang.');
-        });
+        return back()->with('success', "Pengajuan {$pengajuan->kode_pengajuan} berhasil dieskalasi ke BPBD Provinsi.");
     }
 }

@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             PoskoSeeder::class,
             UserSeeder::class,
             ArmadaSeeder::class,
+            StokInventarisSeeder::class,
         ]);
     }
 }

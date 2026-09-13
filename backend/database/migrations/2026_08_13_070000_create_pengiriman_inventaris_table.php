@@ -31,6 +31,18 @@ return new class extends Migration
                   ->constrained('poskos')
                   ->onDelete('cascade');
 
+            // Relasi ke armada pengiriman
+            $table->foreignId('armada_id')
+                  ->nullable()
+                  ->constrained('armadas')
+                  ->onDelete('set null');
+
+            // Relasi ke user (petugas pengirim / pemproses)
+            $table->foreignId('user_id')
+                  ->nullable()
+                  ->constrained('users')
+                  ->onDelete('set null');
+
             // Gunakan decimal(10, 2) untuk presisi PostgreSQL yang optimal
             $table->decimal('jumlah_dikirim', 10, 2)->default(0);
             

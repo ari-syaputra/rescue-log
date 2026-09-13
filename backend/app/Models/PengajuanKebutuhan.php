@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class PengajuanKebutuhan extends Model
 {
@@ -14,9 +14,6 @@ class PengajuanKebutuhan extends Model
 
     protected $table = 'pengajuan_kebutuhan';
 
-    /**
-     * Kolom yang dapat diisi secara massal (Mass Assignment).
-     */
     protected $fillable = [
         'kode_pengajuan',
         'user_id',
@@ -41,8 +38,26 @@ class PengajuanKebutuhan extends Model
         'status',
         'catatan_posko',
         'catatan_komando',
+        'catatan_eskalasi',
     ];
 
+    /**
+     * Casts atribut tanggal ke Carbon instance
+     */
+    protected $casts = [
+        'tanggal_pengajuan' => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
+    ];
+
+    public static function generateKode()
+    {
+        do {
+            $kode = 'REQ-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+        } while (self::where('kode_pengajuan', $kode)->exists());
+
+        return $kode;
+    }
 
     public function user(): BelongsTo
     {

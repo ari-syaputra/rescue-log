@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Posko;
 use App\Models\Bencana;
 use App\Models\User;
+use App\Models\StokInventaris;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,7 @@ class PoskoController extends Controller
         }
 
         // 2. Ambil seluruh Posko Komando milik BPBD ini (beserta relasi akun User-nya)
-        $availablePosko = Posko::komando()
+        $availablePosko = Posko::where('tipe_posko', 'komando')
             ->with('user')
             ->where('bpbd_id', $bpbd?->id)
             ->latest()
@@ -88,15 +89,17 @@ class PoskoController extends Controller
             $userKomandan->update(['posko_id' => $posko->id]);
 
             if ($isDirectActivate) {
-                Bencana::where('id', $validated['bencana_id'])->update([
-                    'status' => 'sedang_berjalan'
-                ]);
+                $bencana = Bencana::find($validated['bencana_id']);
+                $bencana->update(['status' => 'sedang_berjalan']);
+
+                // ALOKASIKAN BUFFER STOCK LOGISTIK AWAL KETIKA POSKO LANGSUNG AKTIF
+                $this->alokasikanBufferStockAwal($posko, $bencana);
             }
 
             DB::commit();
 
             return redirect()->route('admin.posko.create')
-                ->with('success', "Posko Komando '{$posko->nama_posko}' dan Akun Komandan ({$userKomandan->email}) berhasil didaftarkan!");
+                ->with('success', "Posko Komando '{$posko->nama_posko}' dan Akun Komandan ({$userKomandan->email}) berhasil didaftarkan & diaktifkan!");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -105,7 +108,7 @@ class PoskoController extends Controller
     }
 
     /**
-     * TAHAP 2: Aktifkan & Plotting Penempatan GIS Posko ke Bencana
+     * TAHAP 2: Aktifkan & Plotting Penempatan GIS Posko ke Bencana + Transfer Buffer Stock Awal
      */
     public function activateExisting(Request $request)
     {
@@ -120,8 +123,9 @@ class PoskoController extends Controller
         DB::beginTransaction();
         try {
             $posko = Posko::findOrFail($validated['posko_id']);
+            $bencana = Bencana::findOrFail($validated['bencana_id']);
             
-            // Update Posko dengan Bencana & Titik Koordinat GIS Baru
+            // 1. Update Posko dengan Bencana & Titik Koordinat GIS Baru
             $posko->update([
                 'bencana_id' => $validated['bencana_id'],
                 'lokasi'     => $validated['lokasi'],
@@ -130,19 +134,94 @@ class PoskoController extends Controller
                 'status'     => 'aktif',
             ]);
 
-            // Ubah Status Bencana menjadi Sedang Berjalan
-            Bencana::where('id', $validated['bencana_id'])->update([
+            // 2. Ubah Status Bencana menjadi Sedang Berjalan
+            $bencana->update([
                 'status' => 'sedang_berjalan'
             ]);
+
+            // 3. ALOKASIKAN BUFFER STOCK LOGISTIK AWAL DARI GUDANG UTAMA KE POSKO KOMANDO
+            $this->alokasikanBufferStockAwal($posko, $bencana);
 
             DB::commit();
 
             return redirect()->route('admin.bencana')
-                ->with('success', "Posko Komando '{$posko->nama_posko}' berhasil ditempatkan dan DIAKTIFKAN!");
+                ->with('success', "Posko Komando '{$posko->nama_posko}' berhasil DIAKTIFKAN! Buffer Stock Logistik Awal telah dialokasikan ke Posko.");
 
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal menempatkan posko: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * LOGIKA REVOLUSIONER: Otomatisasi Alokasi Buffer Stock Awal Logistik
+     * Menghitung & Memindahkan Stok dari Gudang Utama BPBD (posko_id = null) ke Stok Posko Komando
+     */
+    private function alokasikanBufferStockAwal(Posko $posko, Bencana $bencana)
+    {
+        $pengungsi = $bencana->estimasi_pengungsi_awal ?? 100; // Fallback 100 jiwa jika tidak diisi
+
+        // Formula Kebutuhan Dasar Darurat 3 Hari Pertama (Golden Hours)
+        $rasioKebutuhan = [
+            'Beras'           => $pengungsi * 0.4 * 3,   // 0.4 kg/jiwa/hari x 3 hari
+            'Air Minum'       => ceil($pengungsi * 0.1 * 3), // 0.1 dus/jiwa/hari x 3 hari
+            'Makanan Kaleng'  => $pengungsi * 1 * 3,     // 1 pack/jiwa/hari x 3 hari
+            'Selimut'         => ceil($pengungsi * 0.3),  // 0.3 pcs/jiwa
+            'Matras / Terpal' => ceil($pengungsi * 0.1),  // 0.1 pcs/jiwa
+            'Hygiene Kit'     => ceil($pengungsi * 0.05), // 0.05 paket/jiwa
+        ];
+
+        foreach ($rasioKebutuhan as $namaBarang => $jumlahDibutuhkan) {
+            // 1. Cari Stok di Gudang Utama BPBD (posko_id = null)
+            $stokGudang = StokInventaris::whereNull('posko_id')
+                ->where('nama_barang', 'LIKE', "%{$namaBarang}%")
+                ->first();
+
+            if ($stokGudang && $stokGudang->jumlah > 0) {
+                // Tentukan berapa jumlah yang bisa ditransfer (maksimal sebesar stok yang ada)
+                $jumlahTransfer = min($stokGudang->jumlah, $jumlahDibutuhkan);
+
+                // Potong Stok Gudang Utama BPBD
+                $stokGudang->decrement('jumlah', $jumlahTransfer);
+
+                // 2. Tambahkan atau Buat Stok Logistik Baru di Posko Komando (Compatible dengan PostgreSQL)
+                $stokPosko = StokInventaris::where('posko_id', $posko->id)
+                    ->where('nama_barang', $stokGudang->nama_barang)
+                    ->first();
+
+                if ($stokPosko) {
+                    // Jika barang sudah ada di posko, tambahkan jumlahnya
+                    $stokPosko->increment('jumlah', $jumlahTransfer);
+                } else {
+                    // Jika belum ada, buat baris stok baru
+                    StokInventaris::create([
+                        'posko_id'    => $posko->id,
+                        'nama_barang' => $stokGudang->nama_barang,
+                        'kategori'    => $stokGudang->kategori,
+                        'satuan'      => $stokGudang->satuan,
+                        'jumlah'      => $jumlahTransfer,
+                        'keterangan'  => "Buffer stock awal alokasi otomatis untuk bencana {$bencana->jenis_bencana}",
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Tampilkan Halaman Detail Posko Komando & Stok Logistik Real-Time
+     */
+    public function show($id)
+    {
+        // Load Posko komando beserta relasi User, Bencana, dan Stok Inventaris miliknya
+        $posko = Posko::with(['user', 'bencana', 'stokInventaris'])
+            ->where('tipe_posko', 'komando')
+            ->findOrFail($id);
+
+        // Ambil daftar Sub-Posko (Posko Lapangan) yang berada di bawah komando ini
+        $subPoskos = Posko::where('tipe_posko', '!=', 'komando')
+            ->where('bencana_id', $posko->bencana_id)
+            ->get();
+
+        return view('dashboard.admin.posko.show', compact('posko', 'subPoskos'));
     }
 }

@@ -62,7 +62,12 @@ class Posko extends Model
         return $this->hasMany(Posko::class, 'parent_id');
     }
 
-    // TAMBAHKAN INI (Relasi ke User / Akun Komandan Posko)
+    // Alias dari children() untuk mendapatkan sub-posko bawahan
+    public function subPosko()
+    {
+        return $this->hasMany(Posko::class, 'parent_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -78,8 +83,22 @@ class Posko extends Model
         return $this->hasMany(PoskoFoto::class, 'posko_id');
     }
 
+    public function stokInventaris()
+    {
+        return $this->hasMany(StokInventaris::class, 'posko_id');
+    }
+
+    // --- SCOPES ---
+
+    // Local Scope untuk Posko Komando
     public function scopeKomando($query)
     {
         return $query->where('tipe_posko', 'komando');
+    }
+
+    // Local Scope untuk Sub-Posko (Posko Lapangan)
+    public function scopeSubPosko($query)
+    {
+        return $query->where('tipe_posko', 'sub_posko'); // atau 'lapangan' sesuai enum DB Anda
     }
 }

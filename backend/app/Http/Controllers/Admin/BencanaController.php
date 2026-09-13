@@ -3,26 +3,22 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barang;
 use App\Models\Bencana;
 use App\Models\BencanaPending;
 use App\Models\Bpbd;
 use App\Models\Posko;
+use App\Models\StokPosko;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class BencanaController extends Controller
 {
-    /**
-     * Halaman Utama Manajemen Bencana / Pusat Komando Insiden
-     */
     public function index()
     {
-        // 1. Ambil daftar wilayah BPBD
         $regions = Bpbd::pluck('nama_kabupaten_kota')->filter()->toArray();
 
-        // 2. Query Bencana Pending Terfilter Wilayah BPBD
         $pendingQuery = BencanaPending::where('status', 'pending');
-
         if (!empty($regions)) {
             $pendingQuery->where(function ($query) use ($regions) {
                 foreach ($regions as $region) {
@@ -30,12 +26,9 @@ class BencanaController extends Controller
                 }
             });
         }
-
         $pendingDisasters = $pendingQuery->orderBy('waktu_kejadian', 'desc')->get();
 
-        // 3. Query Deteksi Hari Ini Khusus Wilayah BPBD
         $todayQuery = BencanaPending::whereDate('created_at', today());
-
         if (!empty($regions)) {
             $todayQuery->where(function ($query) use ($regions) {
                 foreach ($regions as $region) {
@@ -44,17 +37,14 @@ class BencanaController extends Controller
             });
         }
 
-        // 4. Data Operasi Bencana Resmi yang Sedang Berjalan
         $activeDisasters = Bencana::where('status', 'sedang_berjalan')
             ->orderBy('tanggal_aktivasi', 'desc')
             ->get();
 
-        // 5. Data Operasi Bencana Resmi yang Sudah Selesai (DITAMBAHKAN)
         $completedDisasters = Bencana::where('status', 'selesai')
             ->orderBy('tanggal_selesai', 'desc')
             ->get();
 
-        // 6. Ringkasan Statistik
         $stats = [
             'terdeteksi_hari_ini' => $todayQuery->count(), 
             'perlu_validasi'      => $pendingDisasters->count(),
@@ -62,7 +52,6 @@ class BencanaController extends Controller
             'selesai'             => $completedDisasters->count(),
         ];
 
-        // Meneruskan $completedDisasters ke Blade view
         return view('dashboard.admin.bencana.index', compact(
             'pendingDisasters', 
             'activeDisasters', 
@@ -72,8 +61,7 @@ class BencanaController extends Controller
     }
 
     /**
-     * Langkah 1: Validasi API BMKG + Input Kaji TRC & SK Darurat
-     * Mengubah status bencana menjadi 'menunggu_posko' lalu redirect ke Form Aktivasi Posko
+     * Langkah 1: Validasi TRC & SK Darurat + Autoinject Rekomendasi Stok Awal
      */
     public function validateAndActivate(Request $request, $pendingId)
     {
@@ -86,29 +74,61 @@ class BencanaController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Upload file SK Tanggap Darurat
             $skPath = $request->file('sk_status_darurat')->store('sk_darurat', 'public');
 
-            // 2. Simpan ke tabel 'bencana' (Status: menunggu_posko)
             $bencana = Bencana::create([
-                'jenis_bencana'            => $pending->jenis_bencana,
-                'lokasi_bencana'           => $pending->wilayah,
+                'jenis_bencana'             => $pending->jenis_bencana,
+                'lokasi_bencana'            => $pending->wilayah,
                 'koordinat_operasional_lat' => $pending->latitude,
                 'koordinat_operasional_lng' => $pending->longitude,
-                'estimasi_pengungsi_awal'  => $request->estimasi_pengungsi_awal,
-                'sk_status_darurat_path'   => $skPath,
-                'tanggal_aktivasi'         => now(),
-                'status'                   => 'menunggu_posko', // Menunggu setup Posko Komando
+                'estimasi_pengungsi_awal'   => $request->estimasi_pengungsi_awal,
+                'sk_status_darurat_path'    => $skPath,
+                'tanggal_aktivasi'          => now(),
+                'status'                    => 'menunggu_posko',
             ]);
 
-            // 3. Update status bencana pending
             $pending->update(['status' => 'validated']);
+
+            // --- OTOMATIS GENERATE STOK REKOMENDASI KE POSKO KOMANDO ---
+            $totalPengungsi = $request->estimasi_pengungsi_awal;
+            $rekomendasiStok = [
+                'Beras'           => ceil($totalPengungsi * 0.4 * 7),  // 0.4kg/hari x 7 hari
+                'Air Minum'       => ceil($totalPengungsi * 0.5),      // Dus
+                'Makanan Kaleng'  => ceil($totalPengungsi * 2),        // Pack
+                'Makanan Bayi'    => ceil($totalPengungsi * 0.2),
+                'Minyak Goreng'   => ceil($totalPengungsi * 0.1),      // Liter
+                'Popok Bayi'      => ceil($totalPengungsi * 0.5),
+                'Popok Dewasa'    => ceil($totalPengungsi * 0.2),
+                'Pembalut Wanita' => ceil($totalPengungsi * 0.3),
+                'Hygiene Kit'     => ceil($totalPengungsi * 0.25),
+                'Selimut'         => ceil($totalPengungsi * 0.8),
+                'Matras Terpal'   => ceil($totalPengungsi * 0.5),
+                'Obat P3K'        => ceil($totalPengungsi * 0.15),
+            ];
+
+            // Cari Seluruh Posko Komando
+            $poskosKomando = Posko::where('tipe_posko', 'komando')->get();
+
+            foreach ($poskosKomando as $posko) {
+                foreach ($rekomendasiStok as $namaBarang => $jumlah) {
+                    $barang = Barang::firstOrCreate(['nama_barang' => $namaBarang]);
+                    
+                    StokPosko::updateOrCreate(
+                        [
+                            'posko_id'  => $posko->id,
+                            'barang_id' => $barang->id,
+                        ],
+                        [
+                            'jumlah_stok' => DB::raw("COALESCE(jumlah_stok, 0) + {$jumlah}")
+                        ]
+                    );
+                }
+            }
 
             DB::commit();
 
-            // Redirect ke menu Aktivasi Posko dengan membawa ID Bencana
             return redirect()->route('admin.posko.create', ['bencana_id' => $bencana->id])
-                ->with('success', 'Data kaji TRC & SK Darurat berhasil divalidasi. Silakan lengkapi detail Aktivasi Posko Komando.');
+                ->with('success', 'Data kaji TRC & SK Darurat divalidasi. Rekomendasi stok awal otomatis disiapkan untuk Posko Komando.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -116,9 +136,6 @@ class BencanaController extends Controller
         }
     }
 
-    /**
-     * Abaikan / Reject Bencana dari API BMKG
-     */
     public function rejectPending($pendingId)
     {
         $pending = BencanaPending::findOrFail($pendingId);
@@ -127,22 +144,17 @@ class BencanaController extends Controller
         return redirect()->back()->with('success', 'Deteksi bencana berhasil diabaikan.');
     }
 
-    /**
-     * Selesaikan Operasi Bencana dan Nonaktifkan/Tutup Seluruh Posko Terkait
-     */
     public function finish($id)
     {
         $bencana = Bencana::findOrFail($id);
 
         DB::beginTransaction();
         try {
-            // 1. Set Status Bencana Selesai
             $bencana->update([
                 'status'          => 'selesai',
                 'tanggal_selesai' => now(),
             ]);
 
-            // 2. Kembalikan Posko Komando Utama ke Status Standby (Terdaftar Nonaktif)
             Posko::komando()
                 ->where('bencana_id', $bencana->id)
                 ->update([
@@ -150,7 +162,6 @@ class BencanaController extends Controller
                     'bencana_id' => null,
                 ]);
 
-            // 3. Deaktivasi / Tutup Seluruh Sub-Posko (Posko Kecil) Lapangan
             Posko::subPosko()
                 ->where('bencana_id', $bencana->id)
                 ->update([
@@ -159,7 +170,7 @@ class BencanaController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Operasi bencana telah diselesaikan. Posko Komando Utama kembali ke status Standby.');
+            return redirect()->back()->with('success', 'Operasi bencana diselesaikan.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal menyelesaikan bencana: ' . $e->getMessage());

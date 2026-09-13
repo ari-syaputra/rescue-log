@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class PengirimanInventaris extends Model
 {
@@ -13,28 +12,38 @@ class PengirimanInventaris extends Model
     protected $table = 'pengiriman_inventaris';
 
     protected $fillable = [
-        'pengajuan_id',       // Tambahan: Menghubungkan ke tabel pengajuan
+        'pengajuan_id',
         'stok_inventaris_id',
         'posko_id',
+        'armada_id',           // Relasi ke tabel armadas
+        'user_id',
         'jumlah_dikirim',
-        'status_distribusi',  // Tambahan: 'Dalam Pengiriman', 'Diterima di Posko'
-        'estimasi_waktu',     // Tambahan: Teks estimasi waktu sampai
-        'waktu_diterima',     // Tambahan: Timestamp saat konfirmasi
+        'status_distribusi',
+        'estimasi_waktu',
+        'waktu_diterima',
         'keterangan',
     ];
 
     protected $casts = [
-    'jumlah_dikirim' => 'double',
-    'waktu_diterima' => 'datetime',
-];
+        'jumlah_dikirim' => 'double',
+        'waktu_diterima' => 'datetime',
+    ];
+
+    /**
+     * Relasi ke Armada Pengiriman
+     */
+    public function armada()
+    {
+        return $this->belongsTo(Armada::class, 'armada_id');
+    }
 
     /**
      * Relasi ke Pengajuan Logistik
      */
     public function pengajuan()
-{
-    return $this->belongsTo(PengajuanKebutuhan::class, 'pengajuan_id');
-}
+    {
+        return $this->belongsTo(PengajuanKebutuhan::class, 'pengajuan_id');
+    }
 
     /**
      * Relasi ke Stok Inventaris (Barang Gudang)
@@ -62,8 +71,6 @@ class PengirimanInventaris extends Model
 
     /**
      * Helper Method: Cek apakah transaksi ini masih boleh di-edit atau di-hapus (Maksimal 20 Menit)
-     * 
-     * @return bool
      */
     public function canBeEditedOrDeleted(): bool
     {
@@ -71,9 +78,7 @@ class PengirimanInventaris extends Model
     }
 
     /**
-     * Helper Method: Mendapatkan sisa waktu (dalam menit / detik) sebelum opsi edit/delete dikunci
-     * 
-     * @return int Sisa menit
+     * Helper Method: Mendapatkan sisa waktu sebelum opsi edit/delete dikunci
      */
     public function sisaWaktuMenit(): int
     {
