@@ -72,49 +72,47 @@ class BencanaController extends Controller
     }
 
     /**
-     * Validasi API BMKG -> Ubah ke Bencana Resmi (Sedang Berjalan) 
-     * dan Otomatis Aktifkan Posko Komando Utama
+     * Langkah 1: Validasi API BMKG + Input Kaji TRC & SK Darurat
+     * Mengubah status bencana menjadi 'menunggu_posko' lalu redirect ke Form Aktivasi Posko
      */
     public function validateAndActivate(Request $request, $pendingId)
     {
-        // 1. Pengecekan Ketersediaan Posko Komando Utama
-        $poskoKomando = Posko::komando()
-            ->where('status', 'terdaftar_nonaktif')
-            ->first();
-
-        if (!$poskoKomando) {
-            return redirect()->back()->with('error', 'Gagal mengaktifkan bencana: Belum ada Posko Komando Utama yang terdaftar atau Posko Komando sedang digunakan.');
-        }
+        $request->validate([
+            'estimasi_pengungsi_awal' => 'required|integer|min:1',
+            'sk_status_darurat'       => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
 
         $pending = BencanaPending::findOrFail($pendingId);
 
         DB::beginTransaction();
         try {
-            // 2. Simpan ke tabel 'bencana'
+            // 1. Upload file SK Tanggap Darurat
+            $skPath = $request->file('sk_status_darurat')->store('sk_darurat', 'public');
+
+            // 2. Simpan ke tabel 'bencana' (Status: menunggu_posko)
             $bencana = Bencana::create([
-                'jenis_bencana'             => $pending->jenis_bencana,
-                'lokasi_bencana'            => $pending->wilayah,
+                'jenis_bencana'            => $pending->jenis_bencana,
+                'lokasi_bencana'           => $pending->wilayah,
                 'koordinat_operasional_lat' => $pending->latitude,
                 'koordinat_operasional_lng' => $pending->longitude,
-                'tanggal_aktivasi'          => now(),
-                'status'                    => 'sedang_berjalan',
+                'estimasi_pengungsi_awal'  => $request->estimasi_pengungsi_awal,
+                'sk_status_darurat_path'   => $skPath,
+                'tanggal_aktivasi'         => now(),
+                'status'                   => 'menunggu_posko', // Menunggu setup Posko Komando
             ]);
 
             // 3. Update status bencana pending
             $pending->update(['status' => 'validated']);
 
-            // 4. Otomatis Hubungkan & Aktifkan Posko Komando Utama
-            $poskoKomando->update([
-                'status'     => 'aktif',
-                'bencana_id' => $bencana->id,
-            ]);
-
             DB::commit();
 
-            return redirect()->back()->with('success', 'Bencana berhasil divalidasi dan Posko Komando Utama resmi DIAKTIFKAN!');
+            // Redirect ke menu Aktivasi Posko dengan membawa ID Bencana
+            return redirect()->route('admin.posko.create', ['bencana_id' => $bencana->id])
+                ->with('success', 'Data kaji TRC & SK Darurat berhasil divalidasi. Silakan lengkapi detail Aktivasi Posko Komando.');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal mengaktifkan bencana: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses validasi: ' . $e->getMessage());
         }
     }
 

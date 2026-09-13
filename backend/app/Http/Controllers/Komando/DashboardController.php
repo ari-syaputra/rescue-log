@@ -10,13 +10,19 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Ambil data user yang sedang login
         $user = auth()->user();
 
-        // 2. Cari data posko komando milik user beserta relasi anak (posko kecil) & bencana yang ditangani
-        $posko = Posko::with(['children', 'bencana'])->find($user->posko_id);
+        // Cari data posko komando milik user
+        $posko = null;
+        if ($user->posko_id) {
+            $posko = Posko::with(['children', 'bencana'])->find($user->posko_id);
+        }
 
-        // 3. Kirim variabel $posko ke tampilan Blade komando
+        // Fallback jika posko_id belum terikat di user tapi user memegang posko via user_id
+        if (!$posko) {
+            $posko = Posko::with(['children', 'bencana'])->where('user_id', $user->id)->first();
+        }
+
         return view('dashboard.komando.index', compact('posko'));
     }
 }

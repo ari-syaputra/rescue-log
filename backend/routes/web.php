@@ -7,12 +7,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\Komando;
 use App\Http\Controllers\Lapangan;
 use App\Http\Controllers\Admin\StokInventarisController;
-use App\Http\Controllers\Admin\DistribusiController;
 use App\Http\Controllers\PredictionController;
-use App\Http\Controllers\Komando\KomandoDistribusiController;
-use App\Http\Controllers\Komando\PengajuanKebutuhanController;
-use App\Http\Controllers\Komando\PengirimanController;
-use App\Http\Controllers\Komando\ArmadaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,10 +17,10 @@ use App\Http\Controllers\Komando\ArmadaController;
 Route::get('/', function () {
     if (Auth::check()) {
         return match (Auth::user()->role) {
-            'admin'    => redirect()->route('admin.dashboard'),
-            'komando'  => redirect()->route('komando.dashboard'),
+            'admin', 'bpbd', 'bpbd_kabkota' => redirect()->route('admin.dashboard'),
+            'komando', 'koordinator_komando', 'posko_komando' => redirect()->route('komando.dashboard'),
             'lapangan' => redirect()->route('lapangan.dashboard'),
-            default    => redirect()->route('login'),
+            default => redirect()->route('login'),
         };
     }
     return redirect()->route('login');
@@ -50,42 +45,43 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // ============ ADMIN (BPBD) ============
-    Route::middleware('role:admin,bpbd')->prefix('admin')->name('admin.')->group(function () {
+    // ============ ADMIN (BPBD KAB/KOTA) ============
+    Route::middleware('role:admin,bpbd,bpbd_kabkota')->prefix('admin')->name('admin.')->group(function () {
+        
         // Dashboard Admin
         Route::get('/dashboard', [Admin\DashboardController::class, 'index'])->name('dashboard');
 
-        // Manajemen Posko Komando
-        Route::post('/posko/store', [Admin\DashboardController::class, 'storePosko'])->name('posko.store');
-        Route::post('/posko/{id}/aktifkan', [Admin\DashboardController::class, 'aktifkanPosko'])->name('posko.aktifkan');
-        Route::post('/posko/{id}/selesaikan', [Admin\DashboardController::class, 'selesaikanPosko'])->name('bencana.finish');
+        // Route Posko Komando
+        Route::get('/posko/create', [Admin\PoskoController::class, 'create'])->name('posko.create');
+        Route::post('/posko/store', [Admin\PoskoController::class, 'store'])->name('posko.store');
+        Route::post('/posko/activate-existing', [Admin\PoskoController::class, 'activateExisting'])->name('posko.activate-existing');
 
-        // Manajemen Bencana (Tanpa Grouping Sub-Prefix)
+        // Manajemen Bencana & Validasi TRC (Langkah 1)
         Route::get('/bencana', [Admin\BencanaController::class, 'index'])->name('bencana');
         Route::post('/bencana/{id}/approve', [Admin\BencanaController::class, 'validateAndActivate'])->name('bencana.approve');
         Route::post('/bencana/{id}/reject', [Admin\BencanaController::class, 'rejectPending'])->name('bencana.reject');
         Route::post('/bencana/{id}/finish', [Admin\BencanaController::class, 'finish'])->name('bencana.finish');
-      // Permintaan Kebutuhan
+
+        // Permintaan Kebutuhan & Restock
         Route::get('/permintaan', fn() => view('dashboard.admin.permintaan.index'))->name('permintaan');
-    
         Route::get('/eskalasi-restock', fn() => view('dashboard.admin.eskalasi.index'))->name('eskalasi.index');
-        
-        // Manajemen Stok Inventaris
+
+        // Manajemen Stok Inventaris Gudang Utama
         Route::get('/inventaris', [StokInventarisController::class, 'index'])->name('inventaris');
         Route::post('/inventaris', [StokInventarisController::class, 'store'])->name('inventaris.store');
         Route::put('/inventaris/{id}', [StokInventarisController::class, 'update'])->name('inventaris.update');
         Route::delete('/inventaris/{id}', [StokInventarisController::class, 'destroy'])->name('inventaris.destroy');
 
-        // Distribusi Logistik & Rute Peta Admin
-        Route::get('/distribusi', [KomandoDistribusiController::class, 'index'])->name('distribusi.index');
-        Route::post('/distribusi', [PengirimanController::class, 'store'])->name('distribusi.store');
-        Route::patch('/distribusi/{id}/status', [PengirimanController::class, 'updateStatus'])->name('distribusi.update-status');
+        // Distribusi Logistik Regional
+        Route::get('/distribusi', [Komando\KomandoDistribusiController::class, 'index'])->name('distribusi.index');
+        Route::post('/distribusi', [Komando\KomandoDistribusiController::class, 'store'])->name('distribusi.store');
+        Route::patch('/distribusi/{id}/status', [Komando\KomandoDistribusiController::class, 'updateStatus'])->name('distribusi.update-status');
 
-        // Laporan
+        // Laporan & Audit
         Route::get('/laporan', fn() => view('dashboard.admin.laporan.index'))->name('laporan');
     });
-    
-    // ============ KOMANDO (Posko Komando) ============
+
+    // ============ POSKO KOMANDO ============
     Route::middleware('role:komando,koordinator_komando,posko_komando')
         ->prefix('komando')
         ->name('komando.')
@@ -94,38 +90,40 @@ Route::middleware('auth')->group(function () {
             // Dashboard Komando
             Route::get('/dashboard', [Komando\DashboardController::class, 'index'])->name('dashboard');
 
-            // Verifikasi & Persetujuan Pengajuan Logistik dari Posko Lapangan
+            // Approval Logistik Lapangan
             Route::get('/logistik', [Komando\KomandoLogistikController::class, 'index'])->name('logistik.index');
             Route::patch('/logistik/{id}/approve', [Komando\KomandoLogistikController::class, 'approve'])->name('logistik.approve');
             Route::patch('/logistik/{id}/approve-partial', [Komando\KomandoLogistikController::class, 'approvePartial'])->name('logistik.approve-partial');
             Route::patch('/logistik/{id}/reject', [Komando\KomandoLogistikController::class, 'reject'])->name('logistik.reject');
 
-            // Penjadwalan Armada Pengiriman Logistik
+            // Penjadwalan Pengiriman Logistik
             Route::post('/logistik/pengiriman', [Komando\KomandoLogistikController::class, 'storePengiriman'])->name('logistik.pengiriman.store');
 
-            // Master Data Armada (Kendaraan & Driver)
+            // Master Data Armada
             Route::resource('armada', Komando\ArmadaController::class)->except(['create', 'edit', 'show']);
 
-            // Distribusi Logistik & Rute Peta Komando
+            // Distribusi Logistik & Rute Peta
             Route::get('/distribusi', [Komando\KomandoDistribusiController::class, 'index'])->name('distribusi.index');
             Route::post('/distribusi', [Komando\KomandoDistribusiController::class, 'store'])->name('distribusi.store');
             Route::patch('/distribusi/{id}/status', [Komando\KomandoDistribusiController::class, 'updateStatus'])->name('distribusi.update-status');
 
-            // Pengajuan Kebutuhan Logistik Komando ke BPBD/Atasan
+            // Pengajuan Logistik Komando ke BPBD
             Route::resource('pengajuan', Komando\PengajuanKebutuhanController::class)->only(['index', 'store', 'destroy']);
 
+            // Alert Medis & SOS
             Route::get('/sos-medis', fn() => view('dashboard.komando.sos.index'))->name('sos.index');
 
-            // Kelola Posko Kecil / Sub-Posko
+            // Kelola Sub-Posko Lapangan
             Route::resource('posko-kecil', Komando\SubPoskoController::class)->names('posko-kecil');
 
-            // Kendala Jalan Komando (Peta/Rute)
+            // Kendala Jalan / Rerouting GIS
             Route::post('/kendala-jalan', [Komando\KomandoDistribusiController::class, 'storeKendala'])->name('distribusi.kendala.store');
             Route::patch('/kendala-jalan/{id}/toggle', [Komando\KomandoDistribusiController::class, 'toggleKendala'])->name('distribusi.kendala.toggle');
         });
 
-    // ============ LAPANGAN (Posko Kecil) ============
+    // ============ SUB-POSKO LAPANGAN ============
     Route::middleware('role:lapangan')->prefix('lapangan')->name('lapangan.')->group(function () {
+        
         // Dashboard Lapangan
         Route::get('/dashboard', [Lapangan\DashboardLapanganController::class, 'index'])->name('dashboard');
         Route::post('/dokumentasi/upload', [Lapangan\DashboardLapanganController::class, 'uploadFoto'])->name('dokumentasi.upload');
@@ -134,16 +132,16 @@ Route::middleware('auth')->group(function () {
         // Pengajuan Logistik
         Route::resource('pengajuan', Lapangan\PengajuanController::class);
 
-        // Pendataan Pengungsi
+        // Pendataan Pengungsi Agregat
         Route::resource('pengungsi', Lapangan\PengungsiController::class);
 
-        // API Endpoint Prediksi ML Standalone (JSON)
+        // Endpoint Prediksi ML
         Route::get('/predict-logistik', [PredictionController::class, 'predict'])->name('predict.logistik');
 
-        // Penyaluran & Pencatatan Stok
+        // Penyaluran ke Pengungsi
         Route::resource('penyaluran', Lapangan\PenyaluranController::class);
 
-        // Status Distribusi & Stok
+        // Stok Lapangan & Konfirmasi BAST
         Route::get('/stok', [Lapangan\StokController::class, 'index'])->name('stok.index');
         Route::post('/stok/{id}/konfirmasi', [Lapangan\StokController::class, 'konfirmasiSampai'])->name('stok.konfirmasi');
     });
