@@ -8,6 +8,7 @@
             'bg_icon' => 'bg-purple-50 text-purple-600',
             'text'    => 'text-purple-700',
             'arrow'   => 'text-purple-600',
+            'full_md' => false,
         ],
         [
             'route'   => route('lapangan.pengajuan.index'),
@@ -17,6 +18,7 @@
             'bg_icon' => 'bg-blue-50 text-blue-600',
             'text'    => 'text-blue-700',
             'arrow'   => 'text-blue-600',
+            'full_md' => false,
         ],
         [
             'route'   => route('lapangan.stok.index'),
@@ -26,15 +28,17 @@
             'bg_icon' => 'bg-emerald-50 text-emerald-600',
             'text'    => 'text-emerald-700',
             'arrow'   => 'text-emerald-600',
+            'full_md' => false,
         ],
         [
             'route'   => route('lapangan.penyaluran.index'),
-            'title'   => 'Pengiriman & BAST',
+            'title'   => 'Pengiriman dan BAST',
             'desc'    => 'Catat penyaluran dan kelola stok',
             'icon'    => 'heroicon-s-clipboard-document-check',
             'bg_icon' => 'bg-amber-50 text-amber-600',
             'text'    => 'text-amber-700',
             'arrow'   => 'text-amber-600',
+            'full_md' => true,
         ],
         [
             'route'   => route('lapangan.penyaluran.index'),
@@ -44,14 +48,19 @@
             'bg_icon' => 'bg-rose-50 text-rose-600',
             'text'    => 'text-rose-700',
             'arrow'   => 'text-rose-600',
+            'full_md' => true,
         ],
     ];
 @endphp
 
-<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 font-sans antialiased">
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-5 gap-4 mb-6 font-sans antialiased">
     @foreach ($cards as $card)
         <a href="{{ $card['route'] }}"
-            class="bg-white hover:bg-blue-50/40 border border-gray-100 hover:border-blue-400 shadow-md shadow-gray-200/60 hover:shadow-blue-100 p-4 pt-5 rounded-2xl transition-all duration-200 flex flex-col items-center justify-between text-center group">
+            @class([
+                'bg-white hover:bg-blue-50/40 border border-gray-100 hover:border-blue-400 shadow-md shadow-gray-200/60 hover:shadow-blue-100 p-4 pt-5 rounded-2xl transition-all duration-200 flex flex-col items-center justify-between text-center group',
+                'md:col-span-2 lg:col-span-1' => !$card['full_md'],
+                'md:col-span-3 lg:col-span-1' => $card['full_md'],
+            ])>
             
             <!-- Konten Utama -->
             <div class="flex flex-col items-center text-center w-full">
