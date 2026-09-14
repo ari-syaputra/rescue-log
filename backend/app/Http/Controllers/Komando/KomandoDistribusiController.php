@@ -131,4 +131,32 @@ class KomandoDistribusiController extends Controller
 
         return redirect()->back()->with('success', 'Laporan kendala jalan berhasil ditambahkan ke sistem GIS.');
     }
+
+    /**
+     * Pendaftaran Armada / Kendaraan Operasional Baru
+     */
+    public function storeArmada(Request $request)
+    {
+        $request->validate([
+            'nama_armada' => 'required|string|max:255',
+            'plat_nomor'  => 'required|string|max:50|unique:armadas,plat_nomor',
+            'nama_driver' => 'required|string|max:255',
+            'no_hp'       => 'nullable|string|max:20',
+        ], [
+            'nama_armada.required' => 'Nama armada/kendaraan wajib diisi.',
+            'plat_nomor.required'  => 'Plat nomor kendaraan wajib diisi.',
+            'plat_nomor.unique'    => 'Plat nomor ini sudah terdaftar di sistem.',
+            'nama_driver.required' => 'Nama pengemudi wajib diisi.',
+        ]);
+
+        Armada::create([
+            'nama_armada' => $request->nama_armada,
+            'plat_nomor'  => strtoupper($request->plat_nomor),
+            'nama_driver' => $request->nama_driver,
+            'no_hp'       => $request->no_hp,
+            'status'      => 'tersedia',
+        ]);
+
+        return redirect()->back()->with('success', "Armada '{$request->nama_armada}' ({$request->plat_nomor}) berhasil didaftarkan dan siap beroperasi.");
+    }
 }

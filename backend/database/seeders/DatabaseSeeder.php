@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         // Jalankan PoskoSeeder terlebih dahulu baru UserSeeder
         $this->call([
+            BencanaSeeder::class,
             PoskoSeeder::class,
             UserSeeder::class,
             ArmadaSeeder::class,

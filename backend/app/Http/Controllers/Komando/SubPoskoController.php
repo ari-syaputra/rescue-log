@@ -71,6 +71,10 @@ class SubPoskoController extends Controller
             'latitude'         => 'nullable|numeric',
             'longitude'        => 'nullable|numeric',
             'foto'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+        ], [
+            'nama_posko.required'       => 'Nama Posko wajib diisi.',
+            'bencana_id.exists'         => 'Bencana aktif tidak valid atau tidak ditemukan.',
+            'penanggung_jawab.required' => 'Penanggung jawab posko wajib diisi.',
         ]);
 
         $fotoPath = null;

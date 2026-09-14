@@ -37,7 +37,7 @@
             'arrow'   => 'text-amber-600',
         ],
         [
-            'route'   => route('lapangan.penyaluran.index'),
+            'route'   => route('lapangan.ambulans.index'),
             'title'   => 'Request Ambulan',
             'desc'    => 'Permintaan darurat armada ambulan',
             'icon'    => 'fas-truck-medical',

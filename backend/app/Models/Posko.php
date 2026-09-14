@@ -101,4 +101,9 @@ class Posko extends Model
     {
         return $query->where('tipe_posko', 'sub_posko'); // atau 'lapangan' sesuai enum DB Anda
     }
+
+    public function permintaanAmbulans()
+    {
+        return $this->hasMany(PermintaanAmbulans::class, 'posko_id');
+    }
 }

@@ -43,6 +43,21 @@
 @section('content')
 <div class="space-y-6">
 
+    <!-- Flash Notification Success / Error -->
+    @if(session('success'))
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between shadow-2xs">
+            <span>{{ session('success') }}</span>
+            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800 font-bold">&times;</button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between shadow-2xs">
+            <span>{{ session('error') }}</span>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-800 font-bold">&times;</button>
+        </div>
+    @endif
+
     <!-- HEADER & TITLE SECTION -->
     <x-komando.distribusi.header />
 
@@ -152,7 +167,49 @@
 <!-- MODAL POPUP LAPOR KENDALA JALAN -->
 <x-komando.distribusi.modal-kendala />
 
+<!-- MODAL POPUP REGISTRASI ARMADA BARU -->
+<div id="armadaModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-200">
+        <div class="bg-emerald-600 text-white px-5 py-4 flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+                <span>🚐</span> Registrasi Unit Armada / Kendaraan Baru
+            </h3>
+            <button onclick="closeArmadaModal()" class="text-emerald-200 hover:text-white font-bold text-xl cursor-pointer">&times;</button>
+        </div>
+
+        <form action="{{ route('komando.distribusi.armada.store') }}" method="POST" class="p-5 space-y-4">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nama / Jenis Kendaraan <span class="text-rose-500">*</span></label>
+                <input type="text" name="nama_armada" required placeholder="Cth: Ambulans Gawat Darurat 01 / Truk TNI AD" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Plat Nomor <span class="text-rose-500">*</span></label>
+                    <input type="text" name="plat_nomor" required placeholder="Cth: AB 1234 XY" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium uppercase">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">No. HP / WA Driver</label>
+                    <input type="text" name="no_hp" placeholder="08xxxxxxxxxx" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nama Pengemudi / Driver <span class="text-rose-500">*</span></label>
+                <input type="text" name="nama_driver" required placeholder="Cth: Bpk. Slamet" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeArmadaModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl cursor-pointer">Batal</button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer">Simpan Armada</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
+
 @push('scripts')
 <!-- CDN Leaflet JS & Leaflet Routing Machine -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -162,6 +219,17 @@
     let mainMap, modalMap, pickerMarker;
     let routingControl = null;
     let hazardPolyline = null; 
+
+    // Controls Modal Registrasi Armada
+    function openArmadaModal() {
+        const modal = document.getElementById('armadaModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeArmadaModal() {
+        const modal = document.getElementById('armadaModal');
+        if (modal) modal.classList.add('hidden');
+    }
 
     // Default Koordinat Posko Utama Komando
     const defaultLat = -7.7956;
@@ -207,7 +275,6 @@
                     jenis: item.jenis_kendala ? item.jenis_kendala.replace(/_/g, ' ') : 'Kendala Jalan',
                     deskripsi: item.deskripsi || '',
                     isBlocked: isBlocked,
-                    // Diperkecil radius deteksinya agar tidak salah deteksi (± 300m untuk block, 200m untuk soft)
                     radius: isBlocked ? 0.003 : 0.002 
                 };
             });
@@ -257,18 +324,13 @@
             if (hardHazardHit) {
                 isDetoured = true;
 
-                // Hitung Vektor Arah dari Start ke Destination
                 const dLat = destLat - startLat;
                 const dLng = destLng - startLng;
-
-                // Tentukan vektor tegak lurus (perpendicular) untuk memintas ke samping sejauh ±300 meter (~0.0025 deg)
                 const offsetDistance = 0.0025;
                 
-                // Coba geser tegak lurus terhadap jalur utama
                 const offsetLat = hardHazardHit.lat + (-dLng * offsetDistance);
                 const offsetLng = hardHazardHit.lng + (dLat * offsetDistance);
                 
-                // Sisipkan Waypoint Memutar Terdekat
                 waypoints = [
                     startLatLng, 
                     L.latLng(offsetLat, offsetLng), 
@@ -476,7 +538,7 @@
         calculateSmartRoute(startLat, startLng, destLat, destLng, namaPoskoTujuan);
     }
 
-    // Modal Controls
+    // Modal Controls Kendala Jalan
     function openKendalaModal(lat = null, lng = null) {
         const modal = document.getElementById('kendalaModal');
         if (!modal) return;

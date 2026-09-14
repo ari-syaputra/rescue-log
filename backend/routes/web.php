@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
 
         // Manajemen Bencana & Validasi TRC
         Route::get('/bencana', [Admin\BencanaController::class, 'index'])->name('bencana');
+        Route::get('/bencana/create', [Admin\BencanaController::class, 'create'])->name('bencana.create');
+        Route::post('/bencana/store-manual', [Admin\BencanaController::class, 'storeManual'])->name('bencana.store-manual');
         Route::post('/bencana/{id}/approve', [Admin\BencanaController::class, 'validateAndActivate'])->name('bencana.approve');
         Route::post('/bencana/{id}/reject', [Admin\BencanaController::class, 'rejectPending'])->name('bencana.reject');
         Route::post('/bencana/{id}/finish', [Admin\BencanaController::class, 'finish'])->name('bencana.finish');
@@ -106,15 +108,18 @@ Route::middleware('auth')->group(function () {
             Route::get('/distribusi', [Komando\KomandoDistribusiController::class, 'index'])->name('distribusi.index');
             Route::post('/distribusi', [Komando\KomandoDistribusiController::class, 'store'])->name('distribusi.store');
             Route::patch('/distribusi/{id}/status', [Komando\KomandoDistribusiController::class, 'updateStatus'])->name('distribusi.update-status');
+            Route::post('/distribusi/armada', [Komando\KomandoDistribusiController::class, 'storeArmada'])->name('distribusi.armada.store');
 
             // Pengajuan Logistik Komando ke BPBD Kab/Kota (Eskalasi Logistik)
             Route::resource('pengajuan', Komando\PengajuanKebutuhanController::class)->only(['index', 'store', 'destroy']);
 
-            // Alert Medis & SOS
-            Route::get('/sos-medis', fn() => view('dashboard.komando.sos.index'))->name('sos.index');
-
             // Kelola Sub-Posko Lapangan
             Route::resource('posko-kecil', Komando\SubPoskoController::class)->names('posko-kecil');
+
+            // Alert Medis & Response Center SOS Ambulans
+            Route::get('/ambulans', [Komando\KomandoAmbulansController::class, 'index'])->name('sos.index');
+            Route::post('/ambulans/{id}/assign', [Komando\KomandoAmbulansController::class, 'assignArmada'])->name('sos.assign');
+            Route::post('/ambulans/{id}/status', [Komando\KomandoAmbulansController::class, 'updateStatus'])->name('ambulans.update-status');
 
             // Kendala Jalan / Rerouting GIS
             Route::post('/kendala-jalan', [Komando\KomandoDistribusiController::class, 'storeKendala'])->name('distribusi.kendala.store');
@@ -144,5 +149,10 @@ Route::middleware('auth')->group(function () {
         // Stok Lapangan & Konfirmasi Penerimaan Logistik
         Route::get('/stok', [Lapangan\StokController::class, 'index'])->name('stok.index');
         Route::post('/stok/{id}/konfirmasi', [Lapangan\StokController::class, 'konfirmasiSampai'])->name('stok.konfirmasi');
+
+        // Manajemen Panggilan Ambulans Lapangan
+        Route::get('/ambulans', [Lapangan\LapanganAmbulansController::class, 'index'])->name('ambulans.index');
+        Route::post('/ambulans', [Lapangan\LapanganAmbulansController::class, 'store'])->name('ambulans.store');
+        Route::post('/ambulans/{id}/konfirmasi', [Lapangan\LapanganAmbulansController::class, 'konfirmasiSelesai'])->name('ambulans.konfirmasi');
     });
 });

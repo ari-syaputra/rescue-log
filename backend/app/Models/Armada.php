@@ -15,4 +15,9 @@ class Armada extends Model
     {
         return $this->hasMany(Pengiriman::class, 'armada_id');
     }
+
+    public function permintaanAmbulans()
+    {
+        return $this->hasMany(PermintaanAmbulans::class, 'armada_id');
+    }
 }

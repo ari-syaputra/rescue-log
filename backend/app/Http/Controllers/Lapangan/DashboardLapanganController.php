@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Lapangan;
 use App\Http\Controllers\Controller;
 use App\Models\Bencana;
 use App\Models\Pendataan;
+use App\Models\PermintaanAmbulans;
 use App\Models\Posko;
 use App\Models\PoskoFoto;
 use Illuminate\Http\Request;
@@ -41,16 +42,26 @@ class DashboardLapanganController extends Controller
         if ($subPosko && isset($subPosko->bencana_id)) {
             $bencanaAktif = $subPosko->bencana;
         } else {
-            // Fallback: Ambil bencana yang statusnya sedang_berjalan paling terbaru
             $bencanaAktif = Bencana::where('status', 'sedang_berjalan')
                 ->orderBy('tanggal_aktivasi', 'desc')
+                ->first();
+        }
+
+        // 3. Ambil Panggilan Ambulans Aktif (jika ada yang dalam proses penanganan)
+        $permintaanAmbulansAktif = null;
+        if ($user->posko_id) {
+            $permintaanAmbulansAktif = PermintaanAmbulans::with('armada')
+                ->where('posko_id', $user->posko_id)
+                ->whereIn('status', ['menunggu_penanganan', 'ambulans_meluncur', 'proses_evakuasi'])
+                ->latest()
                 ->first();
         }
 
         return view('dashboard.lapangan.index', compact(
             'subPosko',
             'totalPengungsiReal',
-            'bencanaAktif'
+            'bencanaAktif',
+            'permintaanAmbulansAktif'
         ));
     }
     
@@ -58,7 +69,7 @@ class DashboardLapanganController extends Controller
     {
         $request->validate([
             'fotos' => 'required',
-            'fotos.*' => 'image|mimes:jpeg,png,jpg|max:2048', // Validasi tiap file dalam array
+            'fotos.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $subPosko = Auth::user()->posko;
@@ -71,7 +82,6 @@ class DashboardLapanganController extends Controller
             foreach ($request->file('fotos') as $file) {
                 $path = $file->store('dokumentasi', 'public');
 
-                // Simpan sebagai data baru (tidak menimpa foto lama)
                 $subPosko->fotos()->create([
                     'path_file' => $path
                 ]);
@@ -85,7 +95,6 @@ class DashboardLapanganController extends Controller
     {
         $foto = PoskoFoto::findOrFail($id);
 
-        // Pastikan foto milik posko user yang login
         if ($foto->posko && $foto->posko->id === Auth::user()->posko_id) {
             if (Storage::disk('public')->exists($foto->path_file)) {
                 Storage::disk('public')->delete($foto->path_file);

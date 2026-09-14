@@ -10,17 +10,48 @@
             height: 420px !important;
             z-index: 1;
         }
+
+        /* FIX CELAH GARIS KOTAK PADA UBIN LEAFLET MAP */
+        .leaflet-container .leaflet-tile-container img {
+            box-shadow: 0 0 1px rgba(0, 0, 0, 0.05);
+            outline: 1px solid transparent;
+            image-rendering: -webkit-optimize-contrast;
+            mix-blend-mode: multiply;
+        }
     </style>
 @endpush
 
 @section('content')
 <div class="space-y-6">
 
-    <!-- Flash Notification -->
+    <!-- Flash Notification Success -->
     @if(session('success'))
         <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
             <span>{{ session('success') }}</span>
             <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800">&times;</button>
+        </div>
+    @endif
+
+    <!-- Flash Notification Error (Catch Exception dari Controller) -->
+    @if(session('error'))
+        <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
+            <span>{{ session('error') }}</span>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-800">&times;</button>
+        </div>
+    @endif
+
+    <!-- Display Validation Errors (Catch Request Validation) -->
+    @if($errors->any())
+        <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-sm font-medium space-y-1">
+            <div class="flex items-center justify-between font-bold text-xs uppercase tracking-wider">
+                <span>⚠️ Validasi Gagal:</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 hover:text-rose-800">&times;</button>
+            </div>
+            <ul class="list-disc list-inside text-xs space-y-0.5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 

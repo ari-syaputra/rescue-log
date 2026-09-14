@@ -3,7 +3,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Inisialisasi Peta Leaflet
+        // 1. Inisialisasi Peta Leaflet Dashboard
         const mapContainer = document.getElementById('mapBencana');
         if (mapContainer) {
             const map = L.map('mapBencana').setView([-7.8000, 110.3700], 9);
@@ -45,26 +45,62 @@
                 }
             });
         }
+
+        // 2. Intercept Event Submit Form Validasi untuk Menampilkan SweetAlert Loading
+        const formValidasi = document.getElementById('formValidasi');
+        if (formValidasi) {
+            formValidasi.addEventListener('submit', function (e) {
+                const estInput = document.getElementById('input_estimasi_pengungsi');
+                const skInput = document.getElementById('input_sk_darurat');
+
+                if (!estInput.value || !skInput.files.length) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Form Belum Lengkap',
+                        text: 'Mohon isi estimasi jumlah pengungsi awal dan unggah berkas SK Status Darurat!',
+                        confirmButtonColor: '#d97706',
+                        customClass: { popup: 'rounded-2xl' }
+                    });
+                    return false;
+                }
+
+                // Tampilkan SweetAlert Loading saat mengunggah & memproses stok
+                Swal.fire({
+                    title: 'Memproses Validasi TRC...',
+                    text: 'Menyiapkan rekomendasi buffer stok otomatis & mengalokasikan Posko Komando.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            });
+        }
     });
 
-    // 1. Fungsi Membuka Modal Validasi & Set Action URL Dinamis
+    // 3. Fungsi Membuka Modal Validasi & Action URL Dinamis
     function openModalValidasi(buttonElement) {
-        let data = {};
-        
-        // Cek apakah parameter yang dikirim adalah elemen HTML (button) atau objek JS
+        let data = null;
+
         if (buttonElement && buttonElement.dataset && buttonElement.dataset.pending) {
             try {
-                data = JSON.parse(buttonElement.dataset.pending);
+                data = typeof buttonElement.dataset.pending === 'string'
+                    ? JSON.parse(buttonElement.dataset.pending)
+                    : buttonElement.dataset.pending;
             } catch (e) {
-                console.error("Gagal parse data-pending:", e);
-                return;
+                console.error("Gagal parse dataset pending:", e);
             }
         } else if (typeof buttonElement === 'object') {
             data = buttonElement;
         }
 
         if (!data || !data.id) {
-            console.error("Data ID Bencana tidak ditemukan:", data);
+            Swal.fire({
+                icon: 'error',
+                title: 'Data Tidak Ditemukan',
+                text: 'ID bencana pending tidak valid.',
+                confirmButtonColor: '#ef4444'
+            });
             return;
         }
 
@@ -72,12 +108,24 @@
         const modalValidasi = document.getElementById('modalValidasi');
 
         if (formValidasi && modalValidasi) {
-            // Path URL relatif murni Laravel
+            // Sesuai route: POST /admin/bencana/{id}/approve
             formValidasi.action = `/admin/bencana/${data.id}/approve`;
 
-            // Pengisian data ke elemen UI Modal
+            // Reset Input Form
+            document.getElementById('input_estimasi_pengungsi').value = '';
+            document.getElementById('input_sk_darurat').value = '';
+
+            // Render Data ke Modal UI
+            const isManual = String(data.external_id || '').startsWith('MANUAL-');
+
             if (document.getElementById('valJenis')) document.getElementById('valJenis').innerText = data.jenis_bencana || '-';
-            if (document.getElementById('valJenisBadge')) document.getElementById('valJenisBadge').innerText = data.jenis_bencana || 'Bencana';
+            if (document.getElementById('valJenisBadge')) {
+                const badge = document.getElementById('valJenisBadge');
+                badge.innerText = isManual ? '📝 MANUAL TRC' : '🛰️ BMKG AUTO';
+                badge.className = isManual 
+                    ? 'px-2 py-0.5 font-bold bg-indigo-100 text-indigo-900 rounded uppercase text-[10px]' 
+                    : 'px-2 py-0.5 font-bold bg-amber-100 text-amber-800 rounded uppercase text-[10px]';
+            }
             if (document.getElementById('valWilayah')) document.getElementById('valWilayah').innerText = data.wilayah || data.lokasi || '-';
             if (document.getElementById('valLat')) document.getElementById('valLat').innerText = data.latitude || data.koordinat_lat || '-';
             if (document.getElementById('valLng')) document.getElementById('valLng').innerText = data.longitude || data.koordinat_lng || '-';
@@ -88,7 +136,7 @@
         }
     }
 
-    // 2. Menutup Modal
+    // 4. Menutup Modal
     function closeModal() {
         const modalValidasi = document.getElementById('modalValidasi');
         if (modalValidasi) {
@@ -96,11 +144,11 @@
         }
     }
 
-    // 3. Konfirmasi Abaikan / Reject
+    // 5. Konfirmasi Abaikan / Reject Bencana Pending
     function konfirmasiAbaikan(id) {
         Swal.fire({
             title: 'Abaikan Deteksi Bencana?',
-            text: "Data deteksi dari BMKG ini akan diabaikan dan tidak masuk ke log operasi.",
+            text: "Data insiden ini akan diabaikan dan tidak masuk ke log operasi.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#6b7280',
@@ -114,7 +162,46 @@
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                document.getElementById(`form-abaikan-${id}`).submit();
+                const formAbaikan = document.getElementById(`form-abaikan-${id}`);
+                if (formAbaikan) {
+                    formAbaikan.submit();
+                }
+            }
+        });
+    }
+
+    // 6. Konfirmasi Selesai Operasi Bencana
+    function konfirmasiSelesaiOperasi(bencanaId, namaBencana) {
+        Swal.fire({
+            title: 'Selesaikan Operasi Bencana?',
+            html: `Apakah Anda yakin ingin menyelesaikan operasi tanggap darurat <b>(${namaBencana})</b>?<br><br><span class="text-xs text-slate-500">Seluruh Posko terkait akan diubah ke status Standby/Ditutup.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Selesaikan!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-2xl font-sans',
+                confirmButton: 'px-4 py-2 rounded-xl text-xs font-semibold shadow-sm',
+                cancelButton: 'px-4 py-2 rounded-xl text-xs font-semibold shadow-sm'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses Penutupan Operasi...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const form = document.getElementById(`form-selesai-${bencanaId}`);
+                if (form) {
+                    form.submit();
+                }
             }
         });
     }

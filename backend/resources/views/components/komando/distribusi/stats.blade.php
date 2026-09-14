@@ -28,13 +28,18 @@
         </div>
     </div>
 
-    <!-- Armada Siaga -->
+    <!-- Armada Siaga (+ Tombol Tambah Clean di Header Card) -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between hover:border-emerald-300 transition-colors">
-        <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Armada Siaga</p>
-            <h3 class="text-2xl font-black text-slate-900 mt-1">{{ $armadaCount }} <span class="text-xs font-normal text-slate-400">Unit</span></h3>
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Armada Siaga</p>
+                <button onclick="openArmadaModal()" class="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-0.5" title="Tambah Unit Armada Baru">
+                    <span>+ Tambah</span>
+                </button>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900">{{ $armadaCount }} <span class="text-xs font-normal text-slate-400">Unit</span></h3>
         </div>
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/80">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/80 shrink-0">
             <x-heroicon-o-shield-check class="w-6 h-6" />
         </div>
     </div>

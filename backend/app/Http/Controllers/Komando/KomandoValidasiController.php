@@ -70,15 +70,15 @@ class KomandoValidasiController extends Controller
             // 2. Potong Stok Logistik Posko Komando
             foreach ($itemsMapping as $namaBarang => $jumlahMinta) {
                 if ($jumlahMinta > 0) {
-                    $barang = Barang::where('nama_barang', 'LIKE', "%{$namaBarang}%")->first();
-                    if ($barang) {
-                        $stokKomando = StokPosko::where('posko_id', $komandoPoskoId)
-                            ->where('barang_id', $barang->id)
-                            ->first();
+                    // Cari record stok posko berdasarkan nama barang
+                    $stokPosko = StokPosko::where('posko_id', $pengajuan->posko_id) // atau posko komando
+                        ->whereHas('barang', function($q) use ($namaBarang) {
+                            $q->where('nama_barang', 'LIKE', "%{$namaBarang}%");
+                        })
+                        ->first();
 
-                        if ($stokKomando && $stokKomando->jumlah_stok >= $jumlahMinta) {
-                            $stokKomando->decrement('jumlah_stok', $jumlahMinta);
-                        }
+                    if ($stokPosko && $stokPosko->jumlah_stok >= $jumlahMinta) {
+                        $stokPosko->decrement('jumlah_stok', $jumlahMinta);
                     }
                 }
             }

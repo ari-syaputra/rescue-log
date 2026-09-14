@@ -5,6 +5,28 @@
 @section('content')
 <div class="max-w-7xl mx-auto space-y-6 pb-12">
     
+    {{-- Flash Notification & Catch Error Validasi --}}
+    @if(session('error'))
+        <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
+            <span>{{ session('error') }}</span>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-800">&times;</button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-sm font-medium space-y-1">
+            <div class="flex items-center justify-between font-bold text-xs uppercase tracking-wider">
+                <span>⚠️ Form Belum Lengkap / Gagal Validasi:</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 hover:text-rose-800">&times;</button>
+            </div>
+            <ul class="list-disc list-inside text-xs space-y-0.5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Header Section --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
         <div class="space-y-1">
@@ -33,8 +55,11 @@
     <form action="{{ route('komando.posko-kecil.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
-        {{-- Hidden Input Kejadian Bencana (Otomatis ID 1) --}}
-        <input type="hidden" name="bencana_id" value="1">
+        {{-- PERBAIKAN: Gunakan bencana_id dinamis dari Posko Komando / Bencana Aktif --}}
+        @php
+            $bencanaIdAktif = $komandoPosko->bencana_id ?? ($bencanaAktif->first()->id ?? 1);
+        @endphp
+        <input type="hidden" name="bencana_id" value="{{ $bencanaIdAktif }}">
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
@@ -47,7 +72,7 @@
                 </div>
 
                 <div class="space-y-4">
-                    {{-- Nama Posko (Kiri) & Jumlah Petugas (Kanan) --}}
+                    {{-- Nama Posko & Jumlah Petugas --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -127,7 +152,7 @@
                     <a href="{{ route('komando.posko-kecil.index') }}" class="px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition">
                         Batal
                     </a>
-                    <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-200 transition-all">
+                    <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-200 transition-all cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
