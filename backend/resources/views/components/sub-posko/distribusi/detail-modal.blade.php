@@ -1,18 +1,21 @@
 <!-- MODAL DETAIL RINCIAN LOGISTIK -->
-<div id="detailLogistikModal" class="fixed inset-0 z-40 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all">
+<div id="detailLogistikModal"
+    class="fixed inset-0 z-40 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4">
-        
+
         <!-- Header Modal -->
         <div class="flex items-center justify-between border-b border-gray-100 pb-3">
             <div>
                 <h3 class="text-base font-bold text-gray-900">Rincian Barang Logistik</h3>
                 <p id="modalKodePengajuan" class="text-xs text-blue-600 font-semibold mt-0.5">#REQ-000</p>
             </div>
-            <button type="button" onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none">&times;</button>
+            <button type="button" onclick="closeDetailModal()"
+                class="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none">&times;</button>
         </div>
 
         <!-- Catatan dari Posko Komando (Jika Ada) -->
-        <div id="modalCatatanContainer" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+        <div id="modalCatatanContainer"
+            class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
             <span class="font-bold">Catatan Komando:</span> <span id="modalCatatanText">-</span>
         </div>
 
@@ -34,12 +37,14 @@
 
         <!-- Action Footer -->
         <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
-            <button type="button" onclick="closeDetailModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 text-xs font-bold transition cursor-pointer">
+            <button type="button" onclick="closeDetailModal()"
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 text-xs font-bold transition cursor-pointer">
                 Tutup
             </button>
-            <button id="btnOpenConfirmModal" type="button" onclick="showConfirmModal()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-2 cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                Konfirmasi Diterima
+            <button id="btnOpenConfirmModal" type="button" onclick="showConfirmModal()"
+                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-2 cursor-pointer">
+                <x-heroicon-o-check class="w-4 h-4 shrink-0 stroke-[2.5]" />
+                <span>Konfirmasi Diterima</span>
             </button>
         </div>
 

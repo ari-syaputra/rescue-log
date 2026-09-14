@@ -4,19 +4,15 @@
     <div class="w-full space-y-6" x-data="{ isLoading: true }" x-init="setTimeout(() => isLoading = false, 400)">
 
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <!-- Bagian Teks Header -->
             <x-sub-posko.page-header title="Pendataan Pengungsi"
                 description="Pantau demografi dan riwayat pengungsi di posko Anda.">
             </x-sub-posko.page-header>
 
-            <!-- Tombol dengan margin atas khusus layar HP (mt-4) agar tidak menimpa teks -->
             <div class="w-full sm:w-auto mt-4 sm:mt-0">
                 <button onclick="openPendataanModal()"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-800 transition shadow-sm cursor-pointer">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Perbarui Data Pengungsi
+                    class="shrink-0 inline-flex items-center justify-center px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-medium transition shadow-sm gap-2 cursor-pointer">
+                    <x-heroicon-s-plus class="w-5 h-5 text-white shrink-0 stroke-[3.5]" />
+                    <span>Perbarui Data Pengungsi</span>
                 </button>
             </div>
         </div>
@@ -38,17 +34,73 @@
                 <div class="space-y-6 w-full">
                     <x-sub-posko.stat-card :pendataan-terakhir="$pendataan_terakhir" />
 
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full">
-                        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full p-4 sm:p-0">
+                        <div
+                            class="px-2 py-2 sm:px-6 sm:py-4 sm:border-b sm:border-gray-200 sm:bg-gray-50 flex items-center justify-between mb-3 sm:mb-0">
                             <div class="flex items-center space-x-3">
                                 <div class="p-2 bg-blue-50 text-blue-600 rounded-xl">
                                     <x-heroicon-s-clock class="w-5 h-5" />
                                 </div>
-                                <h3 class="font-bold text-gray-800">Riwayat Perubahan Data</h3>
+                                <h3 class="font-bold text-gray-800 text-base sm:text-lg">Riwayat Perubahan Data</h3>
                             </div>
-                            <span class="text-xs text-gray-500 font-medium">Total: {{ count($riwayat_pendataan) }} data</span>
+                            <span class="text-xs text-gray-500 font-medium">Total: {{ count($riwayat_pendataan) }}
+                                data</span>
                         </div>
-                        <div class="overflow-x-auto">
+
+                        <!-- 1. TAMPILAN MOBILE: KARTU (Tampil di HP) -->
+                        <div class="block sm:hidden space-y-3">
+                            @forelse ($riwayat_pendataan as $riwayat)
+                                <div class="p-4 bg-gray-50/70 rounded-xl border border-gray-200/80 flex flex-col gap-2.5">
+                                    <!-- Header Kartu: Tanggal Update & Badge Total -->
+                                    <div class="flex items-center justify-between border-b border-gray-200/60 pb-2">
+                                        <span class="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                                            <x-heroicon-s-calendar class="w-4 h-4 text-gray-400" />
+                                            {{ $riwayat->created_at ? $riwayat->created_at->format('d M Y, H:i') : '-' }}
+                                        </span>
+                                        <span
+                                            class="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-700 rounded-full">
+                                            {{ $riwayat->total_pengungsi ?? 0 }} Jiwa
+                                        </span>
+                                    </div>
+
+                                    <!-- Detail Fasilitas & Cuaca -->
+                                    <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                                        <div>
+                                            <span
+                                                class="text-gray-400 block text-[10px] uppercase font-semibold flex items-center gap-1">
+                                                <x-heroicon-s-building-office-2 class="w-3.5 h-3.5 text-emerald-500" /> Tipe
+                                                Fasilitas
+                                            </span>
+                                            <span class="font-medium text-gray-800">
+                                                {{ $riwayat->tipe_tempat ?? '-' }}
+                                            </span>
+                                        </div>
+
+                                        <div class="text-right">
+                                            <span
+                                                class="text-gray-400 block text-[10px] uppercase font-semibold flex items-center justify-end gap-1">
+                                                <x-heroicon-s-sun class="w-3.5 h-3.5 text-amber-500" /> Cuaca Tercatat
+                                            </span>
+                                            <span class="font-medium text-gray-700">
+                                                {{ $riwayat->cuaca ?? '-' }}
+                                                @if (isset($riwayat->suhu_celcius))
+                                                    <span
+                                                        class="text-[11px] text-gray-400 font-normal">({{ $riwayat->suhu_celcius }}°C)</span>
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div
+                                    class="py-8 text-center text-gray-400 italic text-xs bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    Belum ada riwayat perubahan data.
+                                </div>
+                            @endforelse
+                        </div>
+
+                        <!-- 2. TAMPILAN DESKTOP: TABEL STANDAR (Sembunyi di HP) -->
+                        <div class="hidden sm:block overflow-x-auto">
                             <table class="w-full text-left text-sm">
                                 <thead class="text-gray-500 bg-white border-b border-gray-200">
                                     <tr>
@@ -64,7 +116,8 @@
                                         </th>
                                         <th class="px-6 py-3 font-semibold">
                                             <span class="flex items-center gap-1.5">
-                                                <x-heroicon-s-building-office-2 class="w-4 h-4 text-emerald-500" /> Tipe Fasilitas
+                                                <x-heroicon-s-building-office-2 class="w-4 h-4 text-emerald-500" /> Tipe
+                                                Fasilitas
                                             </span>
                                         </th>
                                         <th class="px-6 py-3 font-semibold text-right">
@@ -87,9 +140,10 @@
                                                 {{ $riwayat->tipe_tempat ?? '-' }}
                                             </td>
                                             <td class="px-6 py-4 text-right text-gray-500">
-                                                {{ $riwayat->cuaca ?? '-' }} 
-                                                @if(isset($riwayat->suhu_celcius))
-                                                    <span class="text-xs text-gray-400">({{ $riwayat->suhu_celcius }}°C)</span>
+                                                {{ $riwayat->cuaca ?? '-' }}
+                                                @if (isset($riwayat->suhu_celcius))
+                                                    <span
+                                                        class="text-xs text-gray-400">({{ $riwayat->suhu_celcius }}°C)</span>
                                                 @endif
                                             </td>
                                         </tr>
