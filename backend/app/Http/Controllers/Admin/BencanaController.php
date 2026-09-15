@@ -31,15 +31,16 @@ class BencanaController extends Controller
 
             $pendingQuery->where(function ($query) use ($regionName, $cleanRegion) {
                 $query->orWhereRaw('LOWER(wilayah) LIKE ?', ['%' . $regionName . '%'])
-                      ->orWhereRaw('LOWER(wilayah) LIKE ?', ['%' . $cleanRegion . '%'])
-                      ->orWhere('external_id', 'LIKE', 'MANUAL-%');
+                    ->orWhereRaw('LOWER(wilayah) LIKE ?', ['%' . $cleanRegion . '%'])
+                    ->orWhere('external_id', 'LIKE', 'MANUAL-%');
             });
         }
 
         $pendingDisasters = $pendingQuery->orderBy('waktu_kejadian', 'desc')->get();
         $todayQuery = BencanaPending::whereDate('created_at', today());
 
-        $activeDisasters = Bencana::where('status', 'sedang_berjalan')
+        // PERBAIKAN: Ambil bencana yang 'sedang_berjalan' DAN yang 'menunggu_posko'
+        $activeDisasters = Bencana::whereIn('status', ['menunggu_posko', 'sedang_berjalan'])
             ->orderBy('tanggal_aktivasi', 'desc')
             ->get();
 

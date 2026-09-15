@@ -261,7 +261,6 @@
 
         const mapSebaran = L.map('map-sebaran').setView([bpbdLat, bpbdLng], 12);
 
-        // [BERSIH]: URL Tile Layer diperbaiki tanpa karakter tersembunyi
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
@@ -270,7 +269,7 @@
         setTimeout(() => { mapSebaran.invalidateSize(); }, 300);
 
         // ==========================================
-        // 0. LAYER BPBD KABUPATEN BANTUL (Gudang Utama)
+        // 1. LAYER BPBD KABUPATEN BANTUL (Gudang Utama)
         // ==========================================
         const bpbdNama = "{{ addslashes($bpbd->nama_kabupaten_kota ?? 'BPBD Kabupaten Bantul') }}";
         const bpbdAlamat = "{{ addslashes($bpbd->alamat_kantor ?? 'Jl. Jend. A. Yani No. 1, Badegan, Bantul') }}";
@@ -287,47 +286,13 @@
             .bindPopup(`<b>🏛️ ${bpbdNama}</b><br><span class="text-xs text-slate-500">Gudang Logistik Induk BPBD</span><br><small>${bpbdAlamat}</small>`);
 
         // ==========================================
-        // 1. LAYER BENCANA (TITIK MERAH + POLIGON)
-        // ==========================================
-        @if($bencana)
-            const bencanaLat = {{ $bencana->koordinat_operasional_lat ?? 'null' }};
-            const bencanaLng = {{ $bencana->koordinat_operasional_lng ?? 'null' }};
-
-            if (bencanaLat && bencanaLng) {
-                const bencanaIcon = L.divIcon({
-                    className: 'custom-bencana-icon',
-                    html: `<div class="w-5 h-5 bg-rose-600 rounded-full border-2 border-white shadow-lg animate-pulse"></div>`,
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
-                });
-
-                L.marker([bencanaLat, bencanaLng], { icon: bencanaIcon })
-                    .addTo(mapSebaran)
-                    .bindPopup(`<b>⚠️ [Bencana] {{ addslashes($bencana->jenis_bencana) }}</b><br>Lokasi: {{ addslashes($bencana->lokasi_bencana) }}`);
-
-                let polygonData = @json($bencana->geojson_polygon);
-                if (typeof polygonData === 'string') {
-                    try { polygonData = JSON.parse(polygonData); } catch (e) {}
-                }
-
-                if (Array.isArray(polygonData) && polygonData.length >= 3) {
-                    const polygonLatLngs = polygonData.map(pt => [parseFloat(pt.lat), parseFloat(pt.lng)]);
-                    L.polygon(polygonLatLngs, {
-                        color: '#dc2626', weight: 2, fillColor: '#ef4444', fillOpacity: 0.25, dashArray: '5, 5', stroke: true
-                    }).bindTooltip(`Zona Terdampak: {{ addslashes($bencana->jenis_bencana) }}`, {
-                        sticky: true, className: 'text-xs font-bold border-0 shadow-md'
-                    }).addTo(mapSebaran);
-                }
-            }
-        @endif
-
-        // ==========================================
         // 2. LAYER POSKO KOMANDO UTAMA (HANYA YANG AKTIF)
         // ==========================================
         const komandoIcon = L.divIcon({
             className: 'custom-komando-icon',
             html: `<div class="w-6 h-6 bg-indigo-600 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold">🏢</div>`,
-            iconSize: [24, 24], iconAnchor: [12, 12]
+            iconSize: [24, 24], 
+            iconAnchor: [12, 12]
         });
 
         @foreach($availablePosko as $p)
@@ -344,7 +309,8 @@
         const subIcon = L.divIcon({
             className: 'custom-sub-icon',
             html: `<div class="w-5 h-5 bg-emerald-600 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-[9px] font-bold">⛺</div>`,
-            iconSize: [20, 20], iconAnchor: [10, 10]
+            iconSize: [20, 20], 
+            iconAnchor: [10, 10]
         });
 
         @foreach($subPoskoList ?? [] as $sp)
@@ -373,7 +339,6 @@
         setTimeout(() => {
             if (!mapPlacement) {
                 mapPlacement = L.map('map-placement').setView([lat, lng], 13);
-                // [BERSIH]: URL Tile Layer placement juga dipastikan bersih
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapPlacement);
                 placementMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPlacement);
                 

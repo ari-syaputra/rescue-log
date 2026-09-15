@@ -22,7 +22,6 @@ class PoskoController extends Controller
     {
         $bpbd = Auth::user()->bpbd;
 
-        // Pastikan BPBD memiliki koordinat default jika belum di-set di database
         if ($bpbd) {
             $bpbd->latitude = $bpbd->latitude ?? -7.8893;
             $bpbd->longitude = $bpbd->longitude ?? 110.3288;
@@ -32,16 +31,15 @@ class PoskoController extends Controller
 
         $bencanaId = $request->query('bencana_id');
         $bencana = null;
-        
+
         if ($bencanaId) {
-            // Ambil spesifik bencana yang dikirim via URL parameter
             $bencana = Bencana::where('id', $bencanaId)->first();
         }
         
+        // PERBAIKAN: Utamakan bencana yang butuh posko ('menunggu_posko') terlebih dahulu
         if (!$bencana) {
-            // Prioritaskan mencari yang 'sedang_berjalan' terlebih dahulu, baru 'menunggu_posko'
-            $bencana = Bencana::where('status', 'sedang_berjalan')->latest()->first()
-                    ?? Bencana::where('status', 'menunggu_posko')->latest()->first();
+            $bencana = Bencana::where('status', 'menunggu_posko')->latest()->first()
+                    ?? Bencana::where('status', 'sedang_berjalan')->latest()->first();
         }
 
         $availablePosko = Posko::where('tipe_posko', 'komando')
