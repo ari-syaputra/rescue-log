@@ -1,4 +1,4 @@
-<header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-30 shrink-0">
+{{-- <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-30 shrink-0">
     <div class="flex items-center gap-4">
         <button @click="sidebarOpen = !sidebarOpen" type="button"
             class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg focus:outline-none transition-colors cursor-pointer"
@@ -42,4 +42,4 @@
             </form>
         </div>
     </div>
-</header>
+</header> --}}
