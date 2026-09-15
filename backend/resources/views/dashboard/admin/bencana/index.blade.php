@@ -11,12 +11,18 @@
             z-index: 1;
         }
 
-        /* FIX CELAH GARIS KOTAK PADA UBIN LEAFLET MAP */
         .leaflet-container .leaflet-tile-container img {
             box-shadow: 0 0 1px rgba(0, 0, 0, 0.05);
             outline: 1px solid transparent;
             image-rendering: -webkit-optimize-contrast;
             mix-blend-mode: multiply;
+        }
+
+        .leaflet-interactive:focus {
+            outline: none !important;
+        }
+        path.leaflet-interactive {
+            outline: none !important;
         }
     </style>
 @endpush
@@ -24,7 +30,6 @@
 @section('content')
 <div class="space-y-6">
 
-    <!-- Flash Notification Success -->
     @if(session('success'))
         <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
             <span>{{ session('success') }}</span>
@@ -32,7 +37,6 @@
         </div>
     @endif
 
-    <!-- Flash Notification Error (Catch Exception dari Controller) -->
     @if(session('error'))
         <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
             <span>{{ session('error') }}</span>
@@ -40,7 +44,6 @@
         </div>
     @endif
 
-    <!-- Display Validation Errors (Catch Request Validation) -->
     @if($errors->any())
         <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-sm font-medium space-y-1">
             <div class="flex items-center justify-between font-bold text-xs uppercase tracking-wider">
@@ -61,12 +64,12 @@
     <!-- 2. Main Grid (Peta & Deteksi Otomatis) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <!-- Peta Sebaran -->
-        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col">
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col">
             @include('components.admin.bencana.map')
         </div>
 
         <!-- Deteksi Otomatis (Pending) -->
-        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col">
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col">
             @include('components.admin.bencana.pending-list')
         </div>
     </div>
@@ -78,10 +81,6 @@
     @include('components.admin.bencana.completed-table')
 
 </div>
-
-<!-- 5. Modal Validasi -->
-@include('components.admin.bencana.validation-modal')
-
 @endsection
 
 @push('scripts')

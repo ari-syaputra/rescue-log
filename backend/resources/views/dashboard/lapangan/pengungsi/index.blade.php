@@ -8,9 +8,14 @@
                 description="Pantau demografi dan riwayat pengungsi di posko Anda.">
             </x-sub-posko.page-header>
 
-            <div class="w-full sm:w-auto mt-4 sm:mt-0">
+            <div class="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+                <!-- BANNER INDIKATOR PENDING OFFLINE QUEUE -->
+                <div id="offlineSyncBanner" class="hidden items-center gap-2 px-3 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold shadow-xs">
+                    <span>🔄 <span id="offlineQueueCount">0</span> Draf Offline</span>
+                </div>
+
                 <button onclick="openPendataanModal()"
-                    class="shrink-0 inline-flex items-center justify-center px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-medium transition shadow-sm gap-2 cursor-pointer">
+                    class="shrink-0 inline-flex items-center justify-center px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-medium transition shadow-sm gap-2 cursor-pointer w-full sm:w-auto">
                     <x-heroicon-s-plus class="w-5 h-5 text-white shrink-0 stroke-[3.5]" />
                     <span>Perbarui Data Pengungsi</span>
                 </button>
@@ -165,4 +170,140 @@
         @include('dashboard.lapangan.pengungsi._modal_form')
 
     </div>
+
+    <!-- Script Storage Offline LocalForage & SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalForm = document.getElementById('form-pendataan-pengungsi');
+            const offlineBanner = document.getElementById('offlineSyncBanner');
+            const queueCountElem = document.getElementById('offlineQueueCount');
+
+            // Update badge hitung draf offline saat halaman dimuat
+            async function updateOfflineQueueBadge() {
+                const queue = await localforage.getItem('subposko_pendataan_queue') || [];
+                if (queue.length > 0) {
+                    offlineBanner.classList.remove('hidden');
+                    offlineBanner.classList.add('flex');
+                    queueCountElem.textContent = queue.length;
+                } else {
+                    offlineBanner.classList.add('hidden');
+                    offlineBanner.classList.remove('flex');
+                }
+            }
+            updateOfflineQueueBadge();
+
+            // 1. MONITORING KONEKSI INTERNET
+            window.addEventListener('online', handleNetworkChange);
+            window.addEventListener('offline', handleNetworkChange);
+            
+            function handleNetworkChange() {
+                if (navigator.onLine) {
+                    syncOfflinePendataanQueue();
+                }
+            }
+
+            // 2. INTERSEPSI SUBMIT FORM SAAT OFFLINE
+            if (modalForm) {
+                modalForm.addEventListener('submit', async function(e) {
+                    if (!navigator.onLine) {
+                        e.preventDefault(); // Cegah error jaringan bawaan browser
+
+                        const formData = new FormData(modalForm);
+                        const formPayload = {};
+                        formData.forEach((value, key) => {
+                            if (key !== '_token') {
+                                formPayload[key] = value;
+                            }
+                        });
+
+                        const offlineRecord = {
+                            id: 'OFFLINE-PENDATAAN-' + Date.now(),
+                            timestamp: new Date().toISOString(),
+                            payload: formPayload
+                        };
+
+                        // Simpan ke IndexedDB browser via localforage
+                        let queue = await localforage.getItem('subposko_pendataan_queue') || [];
+                        queue.push(offlineRecord);
+                        await localforage.setItem('subposko_pendataan_queue', queue);
+
+                        updateOfflineQueueBadge();
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Tersimpan Secara Offline! 📡',
+                                text: 'Koneksi internet terputus. Data pendataan pengungsi berhasil disimpan di memori HP dan akan otomatis disinkronkan begitu ada sinyal.',
+                                icon: 'warning',
+                                confirmButtonText: 'Mengerti',
+                                confirmButtonColor: '#D97706',
+                                customClass: {
+                                    popup: 'rounded-2xl',
+                                    confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
+                                }
+                            });
+                        } else {
+                            alert("Tersimpan Secara Offline! Data disimpan di memori ponsel.");
+                        }
+
+                        modalForm.reset();
+                        if (typeof closePendataanModal === 'function') {
+                            closePendataanModal();
+                        }
+                    }
+                });
+            }
+
+            // 3. FUNGSI OTOMATIS SYNC KE SERVER SAAT KONEKSI KEMBALI
+            async function syncOfflinePendataanQueue() {
+                let queue = await localforage.getItem('subposko_pendataan_queue') || [];
+                if (queue.length === 0) return;
+
+                for (let i = 0; i < queue.length; i++) {
+                    const item = queue[i];
+                    try {
+                        const response = await fetch("{{ route('lapangan.pengungsi.store') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify(item.payload)
+                        });
+
+                        if (!response.ok) {
+                            console.error("Gagal menyinkronkan draf pendataan:", item.id);
+                            return;
+                        }
+                    } catch (err) {
+                        console.error("Sinkronisasi gagal karena jaringan terputus kembali:", err);
+                        return;
+                    }
+                }
+
+                // Bersihkan antrean lokal setelah sukses terkirim ke database PostgreSQL
+                await localforage.removeItem('subposko_pendataan_queue');
+                updateOfflineQueueBadge();
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Sinkronisasi Otomatis Sukses! 🚀',
+                        text: 'Data pendataan pengungsi offline berhasil dikirim ke server pusat.',
+                        icon: 'success',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#059669',
+                        customClass: {
+                            popup: 'rounded-2xl',
+                            confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
+                        }
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            }
+        });
+    </script>
 @endsection

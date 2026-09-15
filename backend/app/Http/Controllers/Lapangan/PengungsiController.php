@@ -58,8 +58,25 @@ class PengungsiController extends Controller
         // Masukkan posko_id milik user yang sedang login
         $validated['posko_id'] = $user->posko_id;
 
+        // Validasi pengaman jika akun lapangan belum terikat posko
+        if (!$validated['posko_id']) {
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Akun lapangan belum terikat ke Posko manapun.'], 422);
+            }
+            return redirect()->back()->with('error', 'Gagal: Akun lapangan Anda belum terikat ke Posko manapun.');
+        }
+
         // Simpan data pendataan baru ke database
-        Pendataan::create($validated);
+        $pendataan = Pendataan::create($validated);
+
+        // Jika request berasal dari sinkronisasi latar belakang offline (AJAX/JSON)
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Data pendataan offline berhasil disinkronkan.',
+                'data' => $pendataan
+            ]);
+        }
 
         // REDIRECT LANGSUNG KE HALAMAN PENGAJUAN LOGISTIK
         return redirect()->route('lapangan.pengajuan.index')

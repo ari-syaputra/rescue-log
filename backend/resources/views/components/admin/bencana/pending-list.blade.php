@@ -15,7 +15,6 @@
         @endphp
         <div class="p-4 rounded-xl border transition-colors {{ $isManual ? 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50' : 'border-amber-200 bg-amber-50/40 hover:bg-amber-50' }}">
             <div class="flex justify-between items-start gap-2">
-                <!-- Badge Sumber Insiden -->
                 <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider {{ $isManual ? 'bg-indigo-100 text-indigo-900 border border-indigo-200' : 'bg-amber-200 text-amber-900 border border-amber-300' }}">
                     {{ $isManual ? '📝 Laporan TRC / Manual' : '🛰️ BMKG Auto-Detect' }}
                 </span>
@@ -36,12 +35,10 @@
             </div>
 
             <div class="flex items-center gap-2 mt-3 pt-3 border-t {{ $isManual ? 'border-indigo-200/60' : 'border-amber-200/60' }}">
-                <button type="button" 
-                    data-pending="{{ json_encode($pending) }}"
-                    onclick="openModalValidasi(this)"
-                    class="flex-1 py-2 px-3 {{ $isManual ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700' }} text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-sm cursor-pointer">
-                    Tinjau & Aktifkan
-                </button>
+                <a href="{{ route('admin.bencana.create', ['pending_id' => $pending->id]) }}" 
+                   class="flex-1 py-2 px-3 {{ $isManual ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700' }} text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-xs cursor-pointer">
+                    Validasi TRC & Gambar Zona
+                </a>
 
                 <form id="form-abaikan-{{ $pending->id }}" action="{{ route('admin.bencana.reject', $pending->id) }}" method="POST">
                     @csrf

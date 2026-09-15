@@ -168,12 +168,12 @@
 
                                         @if($bencana && $posko->status !== 'aktif')
                                             <button type="button" 
-                                                    onclick="openModalPlacement({{ $posko->id }}, '{{ addslashes($posko->nama_posko) }}', '{{ addslashes($posko->lokasi ?? '') }}', {{ $posko->latitude ?? ($bencana->koordinat_operasional_lat ?? -7.7956) }}, {{ $posko->longitude ?? ($bencana->koordinat_operasional_lng ?? 110.3695) }})"
+                                                    onclick="openModalPlacement({{ $posko->id }}, '{{ addslashes($posko->nama_posko) }}', '{{ addslashes($posko->lokasi ?? '') }}', {{ $posko->latitude ?? ($bencana->koordinat_operasional_lat ?? -7.8893) }}, {{ $posko->longitude ?? ($bencana->koordinat_operasional_lng ?? 110.3288) }})"
                                                     class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-xl transition shadow-sm cursor-pointer">
-                                                📍 Aktifkan
+                                                📍 Beroperasi
                                             </button>
                                         @elseif($posko->status === 'aktif')
-                                            <span class="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-lg">Beroperasi</span>
+                                            <span class="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-xl">Beroperasi</span>
                                         @else
                                             <span class="text-[11px] text-slate-400 font-medium">Standby</span>
                                         @endif
@@ -229,12 +229,8 @@
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    function openModalCreate() {
-        document.getElementById('modalCreatePosko').classList.remove('hidden');
-    }
-    function closeModalCreate() {
-        document.getElementById('modalCreatePosko').classList.add('hidden');
-    }
+    function openModalCreate() { document.getElementById('modalCreatePosko').classList.remove('hidden'); }
+    function closeModalCreate() { document.getElementById('modalCreatePosko').classList.add('hidden'); }
 
     function filterPoskoTable() {
         const searchInput = document.getElementById('searchPosko').value.toLowerCase();
@@ -259,21 +255,103 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        const defaultLat = {{ $bencana->koordinat_operasional_lat ?? -7.7956 }};
-        const defaultLng = {{ $bencana->koordinat_operasional_lng ?? 110.3695 }};
+        // 1. Kunci Titik Pusat Tetap di Kantor Gudang Utama BPBD Bantul
+        const bpbdLat = {{ $bpbd?->latitude ?? -7.8893 }};
+        const bpbdLng = {{ $bpbd?->longitude ?? 110.3288 }};
 
-        const mapSebaran = L.map('map-sebaran').setView([defaultLat, defaultLng], 11);
+        const mapSebaran = L.map('map-sebaran').setView([bpbdLat, bpbdLng], 12);
 
+        // [BERSIH]: URL Tile Layer diperbaiki tanpa karakter tersembunyi
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(mapSebaran);
 
-        @foreach($availablePosko as $p)
-            @if($p->latitude && $p->longitude)
-                L.marker([{{ $p->latitude }}, {{ $p->longitude }}])
+        setTimeout(() => { mapSebaran.invalidateSize(); }, 300);
+
+        // ==========================================
+        // 0. LAYER BPBD KABUPATEN BANTUL (Gudang Utama)
+        // ==========================================
+        const bpbdNama = "{{ addslashes($bpbd->nama_kabupaten_kota ?? 'BPBD Kabupaten Bantul') }}";
+        const bpbdAlamat = "{{ addslashes($bpbd->alamat_kantor ?? 'Jl. Jend. A. Yani No. 1, Badegan, Bantul') }}";
+
+        const bpbdIcon = L.divIcon({
+            className: 'custom-bpbd-icon',
+            html: `<div class="w-7 h-7 bg-amber-600 rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white text-[11px] font-bold">🏛️</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+
+        L.marker([bpbdLat, bpbdLng], { icon: bpbdIcon })
+            .addTo(mapSebaran)
+            .bindPopup(`<b>🏛️ ${bpbdNama}</b><br><span class="text-xs text-slate-500">Gudang Logistik Induk BPBD</span><br><small>${bpbdAlamat}</small>`);
+
+        // ==========================================
+        // 1. LAYER BENCANA (TITIK MERAH + POLIGON)
+        // ==========================================
+        @if($bencana)
+            const bencanaLat = {{ $bencana->koordinat_operasional_lat ?? 'null' }};
+            const bencanaLng = {{ $bencana->koordinat_operasional_lng ?? 'null' }};
+
+            if (bencanaLat && bencanaLng) {
+                const bencanaIcon = L.divIcon({
+                    className: 'custom-bencana-icon',
+                    html: `<div class="w-5 h-5 bg-rose-600 rounded-full border-2 border-white shadow-lg animate-pulse"></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                L.marker([bencanaLat, bencanaLng], { icon: bencanaIcon })
                     .addTo(mapSebaran)
-                    .bindPopup("<b>{{ addslashes($p->nama_posko) }}</b><br>PJ: {{ addslashes($p->penanggung_jawab) }}<br>Status: {{ strtoupper($p->status) }}");
+                    .bindPopup(`<b>⚠️ [Bencana] {{ addslashes($bencana->jenis_bencana) }}</b><br>Lokasi: {{ addslashes($bencana->lokasi_bencana) }}`);
+
+                let polygonData = @json($bencana->geojson_polygon);
+                if (typeof polygonData === 'string') {
+                    try { polygonData = JSON.parse(polygonData); } catch (e) {}
+                }
+
+                if (Array.isArray(polygonData) && polygonData.length >= 3) {
+                    const polygonLatLngs = polygonData.map(pt => [parseFloat(pt.lat), parseFloat(pt.lng)]);
+                    L.polygon(polygonLatLngs, {
+                        color: '#dc2626', weight: 2, fillColor: '#ef4444', fillOpacity: 0.25, dashArray: '5, 5', stroke: true
+                    }).bindTooltip(`Zona Terdampak: {{ addslashes($bencana->jenis_bencana) }}`, {
+                        sticky: true, className: 'text-xs font-bold border-0 shadow-md'
+                    }).addTo(mapSebaran);
+                }
+            }
+        @endif
+
+        // ==========================================
+        // 2. LAYER POSKO KOMANDO UTAMA (HANYA YANG AKTIF)
+        // ==========================================
+        const komandoIcon = L.divIcon({
+            className: 'custom-komando-icon',
+            html: `<div class="w-6 h-6 bg-indigo-600 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold">🏢</div>`,
+            iconSize: [24, 24], iconAnchor: [12, 12]
+        });
+
+        @foreach($availablePosko as $p)
+            @if($p->status === 'aktif' && $p->latitude && $p->longitude)
+                L.marker([{{ $p->latitude }}, {{ $p->longitude }}], { icon: komandoIcon })
+                    .addTo(mapSebaran)
+                    .bindPopup("<b>🏢 {{ addslashes($p->nama_posko) }} (Posko Komando)</b><br>PJ: {{ addslashes($p->penanggung_jawab) }}<br>Status: AKTIF OPERASI");
+            @endif
+        @endforeach
+
+        // ==========================================
+        // 3. LAYER SUB-POSKO LAPANGAN (HIJAU)
+        // ==========================================
+        const subIcon = L.divIcon({
+            className: 'custom-sub-icon',
+            html: `<div class="w-5 h-5 bg-emerald-600 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-[9px] font-bold">⛺</div>`,
+            iconSize: [20, 20], iconAnchor: [10, 10]
+        });
+
+        @foreach($subPoskoList ?? [] as $sp)
+            @if($sp->latitude && $sp->longitude)
+                L.marker([{{ $sp->latitude }}, {{ $sp->longitude }}], { icon: subIcon })
+                    .addTo(mapSebaran)
+                    .bindPopup("<b>⛺ {{ addslashes($sp->nama_posko) }} (Sub-Posko Lapangan)</b><br>PJ: {{ addslashes($sp->penanggung_jawab) }}<br>Petugas: {{ $sp->jumlah_petugas ?? 0 }} Jiwa");
             @endif
         @endforeach
 
@@ -290,26 +368,21 @@
         document.getElementById('place_lokasi').value = lokasi;
         document.getElementById('place_lat').value = lat;
         document.getElementById('place_lng').value = lng;
-
         document.getElementById('modalPlacement').classList.remove('hidden');
 
         setTimeout(() => {
             if (!mapPlacement) {
                 mapPlacement = L.map('map-placement').setView([lat, lng], 13);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap'
-                }).addTo(mapPlacement);
-
+                // [BERSIH]: URL Tile Layer placement juga dipastikan bersih
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapPlacement);
                 placementMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPlacement);
-
+                
                 placementMarker.on('dragend', function (e) {
                     let position = placementMarker.getLatLng();
                     document.getElementById('place_lat').value = position.lat.toFixed(7);
                     document.getElementById('place_lng').value = position.lng.toFixed(7);
                 });
-
+                
                 mapPlacement.on('click', function (e) {
                     placementMarker.setLatLng(e.latlng);
                     document.getElementById('place_lat').value = e.latlng.lat.toFixed(7);
@@ -322,61 +395,6 @@
             }
         }, 200);
     }
-
-    function closeModalPlacement() {
-        document.getElementById('modalPlacement').classList.add('hidden');
-    }
-
-    /* Modal Detail & Fetch Stok Logistik */
-    function openModalDetail(posko) {
-        document.getElementById('detail_nama_posko').innerText = posko.nama_posko;
-        document.getElementById('detail_pj').innerText = posko.penanggung_jawab;
-        document.getElementById('detail_hp').innerText = '📞 ' + (posko.kontak_hp || '-');
-        document.getElementById('detail_email').innerText = posko.user ? posko.user.email : 'Belum Terikat';
-        document.getElementById('detail_lokasi').innerText = '📍 ' + (posko.lokasi || 'Belum Diatur');
-
-        const badgeContainer = document.getElementById('detail_status_badge');
-        if (posko.status === 'aktif') {
-            badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-full">AKTIF OPERASI</span>`;
-        } else {
-            badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-full">STANDBY</span>`;
-        }
-
-        const tbody = document.getElementById('detail_stok_body');
-        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Memuat data stok logistik...</td></tr>`;
-
-        fetch(`/api/posko/${posko.id}/stok`)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('detail_total_item').innerText = `${data.length} Item Logistik`;
-                if (data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400 italic">Belum ada stok logistik di posko ini.</td></tr>`;
-                    return;
-                }
-
-                let rows = '';
-                data.forEach((item, idx) => {
-                    rows += `
-                        <tr class="hover:bg-white transition">
-                            <td class="py-2.5 px-3.5 text-center font-semibold text-slate-400">${idx + 1}</td>
-                            <td class="py-2.5 px-3.5 font-bold text-slate-800">${item.nama_barang}</td>
-                            <td class="py-2.5 px-3.5"><span class="px-2 py-0.5 bg-slate-200/60 rounded text-[10px] font-semibold">${item.kategori}</span></td>
-                            <td class="py-2.5 px-3.5 text-right font-mono font-bold text-indigo-600">${item.jumlah}</td>
-                            <td class="py-2.5 px-3.5 font-semibold text-slate-500">${item.satuan}</td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = rows;
-            })
-            .catch(() => {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-500">Gagal mengambil data stok.</td></tr>`;
-            });
-
-        document.getElementById('modalDetailPosko').classList.remove('hidden');
-    }
-
-    function closeModalDetail() {
-        document.getElementById('modalDetailPosko').classList.add('hidden');
-    }
+    function closeModalPlacement() { document.getElementById('modalPlacement').classList.add('hidden'); }
 </script>
 @endpush

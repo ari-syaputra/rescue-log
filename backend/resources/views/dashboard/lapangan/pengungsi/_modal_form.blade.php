@@ -30,8 +30,8 @@
                     </button>
                 </div>
 
-                <!-- FORM BODY -->
-                <form id="form-pendataan" action="{{ route('lapangan.pengungsi.store') }}" method="POST">
+                <!-- FORM BODY - ID ditambahkan 'form-pendataan-pengungsi' agar tertangkap script Offline-First -->
+                <form id="form-pendataan-pengungsi" action="{{ route('lapangan.pengungsi.store') }}" method="POST">
                     @csrf
                     <div class="max-h-[75vh] overflow-y-auto p-6 space-y-6 bg-slate-50/50">
                         

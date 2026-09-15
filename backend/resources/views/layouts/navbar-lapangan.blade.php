@@ -1,8 +1,38 @@
 <nav class="w-full bg-blue-800 shadow-md sticky top-0 z-50 text-white" x-data="{
     isOnline: navigator.onLine,
     init() {
-        window.addEventListener('online', () => this.isOnline = true);
-        window.addEventListener('offline', () => this.isOnline = false);
+        this.updateStatus();
+
+        // Listener event browser
+        window.addEventListener('online', () => { this.updateStatus(); });
+        window.addEventListener('offline', () => { this.isOnline = false; });
+
+        // Pengecekan berkala setiap 4 detik
+        setInterval(() => {
+            this.updateStatus();
+        }, 4000);
+    },
+    async updateStatus() {
+        // 1. Cek dasar dari browser
+        if (!navigator.onLine) {
+            this.isOnline = false;
+            return;
+        }
+
+        // 2. Cek koneksi nyata dengan melakukan fetch ke endpoint publik eksternal (misal favicon Google/Cloudflare)
+        // atau mendeteksi jika koneksi benar-benar terputus total dari internet luar.
+        try {
+            // Menggunakan mode no-cors untuk menghindari masalah CORS dengan external ping
+            const response = await fetch('https://www.google.com/favicon.ico', { 
+                mode: 'no-cors', 
+                cache: 'no-store',
+                signal: AbortSignal.timeout(3000) // Timeout 3 detik
+            });
+            this.isOnline = true;
+        } catch (error) {
+            // Jika gagal menghubungi internet luar, set ke Offline (Mode Lokal)
+            this.isOnline = false;
+        }
     }
 }">
     <div class="w-full px-4 sm:px-6 lg:px-10">
