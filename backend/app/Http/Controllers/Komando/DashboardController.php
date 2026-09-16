@@ -12,34 +12,42 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        // 1. Cari data posko komando milik user
+        // 1. Cari data Posko Komando milik user komandan yang login beserta relasinya
         $posko = null;
         if ($user->posko_id) {
-            $posko = Posko::with(['children', 'bencana'])->find($user->posko_id);
+            $posko = Posko::with(['children', 'bencana', 'bpbd'])->find($user->posko_id);
         }
 
         if (!$posko) {
-            $posko = Posko::with(['children', 'bencana'])->where('user_id', $user->id)->first();
+            $posko = Posko::with(['children', 'bencana', 'bpbd'])->where('user_id', $user->id)->first();
         }
 
-        // 2. Data Metric & Ringkasan Taktis (Ambil dari DB atau fallback)
+        // 2. Data Sub-Posko Bawahan (Children)
         $totalPoskoList = $posko ? $posko->children : collect();
         $totalPoskoKecil = $totalPoskoList->count();
 
-        // Anda dapat mengganti ini dengan Query Model/Database sesuai struktur aplikasi RESCUE-LOG
+        // 3. Data BPBD Induk
+        $bpbd = $posko ? $posko->bpbd : null;
+
+        // 4. Data Bencana Terikat
+        $bencana = $posko ? $posko->bencana : null;
+
+        // Metrik Ringkasan Taktis (Dapat disesuaikan dengan query DB terkait)
         $armadaSiap = 12;
-        $personelSiaga = 48;
-        $lokasiTerdampak = 4;
+        $personelSiaga = $totalPoskoList->sum('jumlah_petugas') > 0 ? $totalPoskoList->sum('jumlah_petugas') : 48;
+        $lokasiTerdampak = $bencana ? 1 : 0;
         $logistikTerkirim = 234;
 
         $pengajuanMasukCount = 3;
         $distribusiBerjalanCount = 1;
         $stokKritisCount = 4;
 
-        $kendalaJalans = []; // Tambahkan query KendalaJalan::where('is_active', true)->get() jika ada
+        $kendalaJalans = []; // Reserved untuk fitur hambatan distribusi mendatang
 
         return view('dashboard.komando.index', compact(
             'posko',
+            'bpbd',
+            'bencana',
             'totalPoskoList',
             'totalPoskoKecil',
             'armadaSiap',

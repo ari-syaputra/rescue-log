@@ -9,113 +9,113 @@ class StokInventarisSeeder extends Seeder
 {
     public function run(): void
     {
-        // Kosongkan tabel sebelum di-seed (Opsional)
+        // Kosongkan tabel sebelum di-seed untuk menghindari duplikasi data lama
         StokInventaris::truncate();
 
         $stokAwal = [
-            // 1. Makanan & Sembako
+            // 1. Makanan Pokok & Bahan Pokok
             [
                 'posko_id'    => null, // Stok Gudang Utama BPBD
                 'nama_barang' => 'Beras',
-                'kategori'    => 'Makanan & Sembako',
+                'kategori'    => 'Makanan Pokok',
                 'jumlah'      => 5000.00,
-                'satuan'      => 'KG',
+                'satuan'      => 'Kg',
                 'keterangan'  => 'Stok beras putih medium gudang utama BPBD',
             ],
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Minyak Goreng',
-                'kategori'    => 'Makanan & Sembako',
+                'kategori'    => 'Bahan Pokok',
                 'jumlah'      => 1200.00,
-                'satuan'      => 'LITER',
+                'satuan'      => 'Liter',
                 'keterangan'  => 'Kemasan bantal 1 Liter',
             ],
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Makanan Kaleng',
-                'kategori'    => 'Makanan & Sembako',
+                'kategori'    => 'Makanan Cepat Saji',
                 'jumlah'      => 3500.00,
-                'satuan'      => 'PACK',
-                'keterangan'  => 'Sarden dan cornet siap saji',
+                'satuan'      => 'Pack',
+                'keterangan'  => 'Sarden dan kornet siap saji',
             ],
 
-            // 2. Air & Minuman
+            // 2. Konsumsi
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Air Minum',
-                'kategori'    => 'Air & Minuman',
+                'kategori'    => 'Konsumsi',
                 'jumlah'      => 800.00,
-                'satuan'      => 'DUS',
+                'satuan'      => 'Dus',
                 'keterangan'  => 'Air mineral botol 600ml (24 botol/dus)',
             ],
 
-            // 3. Kelompok Rentan & Bayi
+            // 3. Nutrisi Bayi & Kebutuhan Rentan
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Makanan Bayi',
-                'kategori'    => 'Kelompok Rentan & Bayi',
+                'kategori'    => 'Nutrisi Bayi',
                 'jumlah'      => 600.00,
-                'satuan'      => 'PACK',
+                'satuan'      => 'Pack',
                 'keterangan'  => 'Bubur bayi instan usia 6-24 bulan',
             ],
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Popok Bayi',
-                'kategori'    => 'Kelompok Rentan & Bayi',
+                'kategori'    => 'Kebutuhan Bayi',
                 'jumlah'      => 1500.00,
-                'satuan'      => 'PCS',
+                'satuan'      => 'Pcs',
                 'keterangan'  => 'Ukuran M & L campur',
             ],
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Popok Dewasa',
-                'kategori'    => 'Kelompok Rentan & Bayi',
+                'kategori'    => 'Sanitasi',
                 'jumlah'      => 400.00,
-                'satuan'      => 'PCS',
+                'satuan'      => 'Pcs',
                 'keterangan'  => 'Kebutuhan pengungsi lansia',
             ],
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Pembalut Wanita',
-                'kategori'    => 'Kelompok Rentan & Bayi',
+                'kategori'    => 'Sanitasi',
                 'jumlah'      => 800.00,
-                'satuan'      => 'PACK',
+                'satuan'      => 'Pack',
                 'keterangan'  => 'Kemasan 10 pcs',
             ],
 
-            // 4. Kesehatan & Sanitasi
+            // 4. Kebersihan & Kesehatan
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Hygiene Kit',
-                'kategori'    => 'Kesehatan & Sanitasi',
+                'kategori'    => 'Kebersihan',
                 'jumlah'      => 350.00,
-                'satuan'      => 'PAKET',
+                'satuan'      => 'Paket',
                 'keterangan'  => 'Paket mandiri (Sabun, Sampo, Sikat, Handuk)',
             ],
             [
                 'posko_id'    => null,
-                'nama_barang' => 'Obat P3K',
-                'kategori'    => 'Kesehatan & Sanitasi',
+                'nama_barang' => 'Obat-obatan / P3K',
+                'kategori'    => 'Kesehatan',
                 'jumlah'      => 150.00,
-                'satuan'      => 'PAKET',
+                'satuan'      => 'Paket',
                 'keterangan'  => 'Kit pertolongan pertama & obat-obatan darurat',
             ],
 
-            // 5. Peralatan & Perlengkapan
+            // 5. Perlengkapan & Tenda
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Selimut',
-                'kategori'    => 'Peralatan & Perlengkapan',
+                'kategori'    => 'Perlengkapan',
                 'jumlah'      => 1000.00,
-                'satuan'      => 'PCS',
+                'satuan'      => 'Pcs',
                 'keterangan'  => 'Selimut wol hangat pengungsian',
             ],
             [
                 'posko_id'    => null,
                 'nama_barang' => 'Matras / Terpal',
-                'kategori'    => 'Peralatan & Perlengkapan',
+                'kategori'    => 'Tenda/Perlengkapan',
                 'jumlah'      => 500.00,
-                'satuan'      => 'PCS',
+                'satuan'      => 'Pcs',
                 'keterangan'  => 'Terpal plastik tebal 4x6m & matras gulung',
             ],
         ];

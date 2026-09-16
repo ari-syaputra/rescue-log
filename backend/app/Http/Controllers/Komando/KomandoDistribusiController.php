@@ -10,6 +10,7 @@ use App\Models\PengirimanInventaris;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\Posko;
 
 class KomandoDistribusiController extends Controller
 {
@@ -18,35 +19,68 @@ class KomandoDistribusiController extends Controller
      */
     public function index()
     {
-        $komandoPoskoId = Auth::user()->posko_id;
+        $user = Auth::user();
+        $komandoPoskoId = $user->posko_id;
 
-        // 1. Ambil Pengajuan Logistik HANYA dari Sub-Posko Lapangan yang SUDAH DISETUJUI
+        // 1. Load Data Posko Komando milik komandan yang login
+        $posko = Posko::with(['children', 'bencana', 'bpbd', 'user.bpbd'])->find($komandoPoskoId);
+        if (!$posko) {
+            $posko = Posko::with(['children', 'bencana', 'bpbd', 'user.bpbd'])
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
+        // 2. Ambil BPBD Induk (Prioritas: Posko -> User BPBD -> Fallback DB BPBD Pertama)
+        $bpbd = $posko?->bpbd 
+            ?? $user->bpbd 
+            ?? \App\Models\Bpbd::first();
+
+        // Pastikan koordinat BPBD ada fallback default (Bantul)
+        if ($bpbd) {
+            $bpbd->latitude = $bpbd->latitude ?? -7.8893;
+            $bpbd->longitude = $bpbd->longitude ?? 110.3288;
+            $bpbd->nama_kabupaten_kota = $bpbd->nama_kabupaten_kota ?? 'BPBD Kabupaten Bantul';
+            $bpbd->alamat_kantor = $bpbd->alamat_kantor ?? 'Jl. Jend. A. Yani No. 1, Badegan, Bantul';
+        }
+
+        $bencana = $posko ? $posko->bencana : null;
+
+        // 3. Ambil seluruh Sub-Posko (baik children dari posko ini maupun sub-posko bencana terkait)
+        $subPoskoList = Posko::where('tipe_posko', '!=', 'komando')
+            ->where(function ($q) use ($posko) {
+                if ($posko) {
+                    $q->where('parent_id', $posko->id)
+                    ->orWhere('bencana_id', $posko->bencana_id);
+                }
+            })
+            ->get();
+
+        // 4. Pengajuan & Pengiriman
         $pengajuanSiapKirim = PengajuanKebutuhan::with(['posko.bencana', 'user', 'bencana'])
             ->where('status', 'disetujui')
             ->whereHas('posko', function ($q) use ($komandoPoskoId) {
-                // Menyaring agar hanya Sub-Posko (bukan Posko Komando sendiri)
                 $q->where('tipe_posko', '!=', 'komando')
-                  ->orWhere('parent_id', $komandoPoskoId);
+                ->orWhere('parent_id', $komandoPoskoId);
             })
             ->latest()
             ->get();
 
-        // 2. Data Pengiriman Aktif / Dalam Perjalanan khusus yang ditangani Posko Komando
         $pengirimans = PengirimanInventaris::with(['pengajuan.posko', 'pengajuan.user', 'user', 'armada', 'posko'])
             ->whereHas('pengajuan.posko', function ($q) use ($komandoPoskoId) {
                 $q->where('tipe_posko', '!=', 'komando')
-                  ->orWhere('parent_id', $komandoPoskoId);
+                ->orWhere('parent_id', $komandoPoskoId);
             })
             ->latest()
             ->get();
 
-        // 3. Data Armada Siaga yang Tersedia
         $armadas = Armada::where('status', 'tersedia')->get();
-
-        // 4. Data Kendala Jalan Real-Time GIS
         $kendalaJalans = KendalaJalan::latest()->get();
 
         return view('dashboard.komando.distribusi.index', compact(
+            'posko',
+            'bpbd',
+            'bencana',
+            'subPoskoList',
             'pengajuanSiapKirim',
             'pengirimans',
             'armadas',

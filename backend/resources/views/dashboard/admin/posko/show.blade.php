@@ -94,13 +94,14 @@
 
     <!-- Tabel Buffer Stok Logistik Posko Komando -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden space-y-4 p-6">
+        <!-- Badge Total Item pada Header Tabel Buffer Stok Logistik Posko -->
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
                 <h3 class="text-base font-bold text-slate-900">📦 Inventaris Buffer Stok Logistik Posko</h3>
                 <p class="text-xs text-slate-500">Ketersediaan barang yang dikuasai Posko Komando untuk kebutuhan distribusi darurat.</p>
             </div>
             <span class="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100">
-                Total {{ count($posko->stokInventaris) }} Jenis Item
+                Total {{ count($posko->stokInventaris) }} dari 12 Jenis Item Utama Baku
             </span>
         </div>
 

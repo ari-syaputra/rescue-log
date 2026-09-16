@@ -4,6 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- PWA Manifest & Theme Color -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#1d4ed8">
+
     <title>@yield('title', config('app.name', 'RESCUE-LOG')) - Posko Lapangan</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,6 +51,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // 1. REGISTRASI SERVICE WORKER PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => {
+                        console.log('[PWA SW] Service Worker Registered successfully with scope:', reg.scope);
+                    })
+                    .catch(err => {
+                        console.error('[PWA SW] Service Worker Registration failed:', err);
+                    });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Global Toast Notification Helper
             const Toast = Swal.mixin({
@@ -84,7 +103,6 @@
                 const indicatorDot = document.getElementById('network-indicator-dot');
                 const indicatorText = document.getElementById('network-indicator-text');
 
-                // Jika elemen badge ditemukan di navbar, perbarui tampilannya secara dinamis
                 if (statusBadge && indicatorDot && indicatorText) {
                     if (navigator.onLine) {
                         statusBadge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs bg-emerald-50 text-emerald-700 border border-emerald-200";

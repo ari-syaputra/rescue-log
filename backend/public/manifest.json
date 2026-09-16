@@ -1,10 +1,11 @@
 {
   "name": "Rescue-Log Sub-Posko Offline",
   "short_name": "RescueLog SubPosko",
-  "start_url": "/sub-posko/dashboard",
+  "start_url": "/lapangan/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "theme_color": "#1d4ed8",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/images/icon-192.png",

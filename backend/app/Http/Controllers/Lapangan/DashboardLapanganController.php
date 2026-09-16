@@ -17,7 +17,12 @@ class DashboardLapanganController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $subPosko = $user->posko;
+
+        // 1. Ambil data Posko beserta relasi Bencana secara Eager Loading
+        $subPosko = null;
+        if ($user->posko_id) {
+            $subPosko = Posko::with('bencana')->find($user->posko_id);
+        }
 
         if (!$subPosko) {
             $subPosko = (object) [
@@ -27,27 +32,38 @@ class DashboardLapanganController extends Controller
                 'latitude' => -7.7956,
                 'longitude' => 110.3695,
                 'foto' => null,
+                'bencana' => null,
             ];
         }
 
-        // 1. Ambil data pendataan pengungsi terbaru dari posko ini
+        // 2. Ambil data pendataan pengungsi terbaru dari posko ini
         $pendataanTerakhir = Pendataan::where('posko_id', $user->posko_id)
             ->latest()
             ->first();
 
         $totalPengungsiReal = $pendataanTerakhir ? $pendataanTerakhir->total_pengungsi : 0;
 
-        // 2. Ambil Bencana yang tersambung dengan Posko ini
+        // 3. AMBIL DATA BENCANA AKTIF (DENGAN MENJAMIN GEOJSON_POLYGON TERAMBIL)
         $bencanaAktif = null;
-        if ($subPosko && isset($subPosko->bencana_id)) {
+        
+        // Opsi A: Cek relasi langsung dari posko jika ada
+        if ($subPosko instanceof Posko && $subPosko->bencana) {
             $bencanaAktif = $subPosko->bencana;
-        } else {
-            $bencanaAktif = Bencana::where('status', 'sedang_berjalan')
-                ->orderBy('tanggal_aktivasi', 'desc')
+        } 
+        
+        // Opsi B (Fallback 1): Cari bencana terbaru yang memiliki data poligon di database
+        if (!$bencanaAktif) {
+            $bencanaAktif = Bencana::whereNotNull('geojson_polygon')
+                ->latest('tanggal_aktivasi')
                 ->first();
         }
 
-        // 3. Ambil Panggilan Ambulans Aktif (jika ada yang dalam proses penanganan)
+        // Opsi C (Fallback 2): Ambil bencana paling terbaru apapun statusnya jika tetap kosong
+        if (!$bencanaAktif) {
+            $bencanaAktif = Bencana::latest()->first();
+        }
+
+        // 4. Ambil Panggilan Ambulans Aktif
         $permintaanAmbulansAktif = null;
         if ($user->posko_id) {
             $permintaanAmbulansAktif = PermintaanAmbulans::with('armada')

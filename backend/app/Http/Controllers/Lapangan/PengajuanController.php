@@ -16,58 +16,79 @@ class PengajuanController extends Controller
     public function index()
     {
         $user = Auth::user();
-        Log::info('PengajuanController@index - Mengambil data pengajuan untuk Posko ID: ' . $user->posko_id);
+        Log::info('PengajuanController@index - Mengambil data pengajuan Posko ID: ' . $user->posko_id);
 
-        // 1. Ambil data pendataan pengungsi terbaru khusus posko user yang sedang login
+        // 1. Ambil data pendataan pengungsi terbaru khusus posko user
         $pendataan = Pendataan::where('posko_id', $user->posko_id)
             ->latest()
             ->first();
 
-        // Jika belum ada pendataan di posko ini, alihkan pengguna
         if (!$pendataan) {
             Log::warning('PengajuanController@index - Pendataan tidak ditemukan untuk Posko ID: ' . $user->posko_id);
             return redirect()->route('lapangan.pengungsi.index')
                 ->with('error', 'Silakan isi Form Pendataan Pengungsi terlebih dahulu sebelum mengajukan logistik.');
         }
 
-        // 2. Format payload untuk dikirim ke Service Machine Learning (FastAPI)
+        // 2. Tentukan Total Penerima Manfaat secara akurat dari model Pendataan
+        $totalPenerimaManfaat = (int) ($pendataan->total_pengungsi 
+                                    ?? $pendataan->jumlah_pengungsi 
+                                    ?? (($pendataan->balita ?? 0) + ($pendataan->anak ?? 0) + ($pendataan->dewasa ?? 0) + ($pendataan->lansia ?? 0)));
+
+        if ($totalPenerimaManfaat <= 0) {
+            $totalPenerimaManfaat = 1; // Safeguard agar tidak 0
+        }
+
+        // 3. Format payload persis sesuai Pydantic Schema FastAPI (PengajuanLogistikInput)
         $payloadML = [
-            'total_pengungsi'       => (int) $pendataan->total_pengungsi,
-            'anak_balita'           => (int) $pendataan->balita,
-            'dewasa'                => (int) $pendataan->dewasa,
-            'ibu_hamil'             => (int) $pendataan->ibu_hamil,
-            'lansia'                => (int) $pendataan->lansia,
-            'disabilitas'           => (int) $pendataan->disabilitas,
-            'suhu_celcius'          => (float) $pendataan->suhu_celcius,
-            'lama_pengungsian_hari' => (int) $pendataan->lama_pengungsian,
-            'tipe_tempat'           => (string) $pendataan->tipe_tempat,
-            'akses_air'             => (string) $pendataan->akses_air,
-            'cuaca'                 => (string) $pendataan->cuaca,
-            'akses_jalan'           => (string) $pendataan->akses_jalan,
+            'total_pengungsi'       => $totalPenerimaManfaat,
+            'anak_balita'           => (int) ($pendataan->balita ?? 0),
+            'dewasa'                => (int) ($pendataan->dewasa ?? $totalPenerimaManfaat),
+            'ibu_hamil'             => (int) ($pendataan->ibu_hamil ?? 0),
+            'lansia'                => (int) ($pendataan->lansia ?? 0),
+            'disabilitas'           => (int) ($pendataan->disabilitas ?? 0),
+            'tipe_tempat'           => (string) ($pendataan->tipe_tempat ?? 'Balai Desa'),
+            'akses_air'             => (string) ($pendataan->akses_air ?? 'Cukup'),
+            'suhu_celcius'          => (float) ($pendataan->suhu_celcius ?? 28.5),
+            'cuaca'                 => (string) ($pendataan->cuaca ?? 'Hujan Deras'),
+            'akses_jalan'           => (string) ($pendataan->akses_jalan ?? 'Mobil/Truk Bisa Masuk'),
+            'lama_pengungsian_hari' => max(1, (int) ($pendataan->lama_pengungsian ?? $pendataan->lama_pengungsian_hari ?? 1)),
         ];
 
         $estimasi = [];
         try {
-            $fastApiUrl = env('FASTAPI_URL', 'http://127.0.0.1:8000') . '/predict';
+            $baseUrl = env('ML_SERVICE_URL', env('FASTAPI_URL', 'http://127.0.0.1:8001'));
+            $fastApiUrl = rtrim($baseUrl, '/') . '/predict';
+
+            Log::info('PengajuanController@index - Mengirim Payload ke ML Service:', $payloadML);
+
             $response = Http::timeout(10)->post($fastApiUrl, $payloadML);
 
             if ($response->successful()) {
                 $hasil = $response->json();
                 $estimasi = $hasil['estimasi_kebutuhan'] ?? [];
+                Log::info('PengajuanController@index - Respon Sukses dari FastAPI ML:', $estimasi);
+            } else {
+                Log::warning('PengajuanController@index - Respon Error FastAPI Status: ' . $response->status());
             }
         } catch (\Exception $e) {
             Log::warning('PengajuanController@index - Gagal terkoneksi FastAPI ML: ' . $e->getMessage());
             session()->flash('warning', 'Gagal menghubungkan ke Service AI ML. Anda dapat mengisi jumlah logistik secara manual.');
         }
 
-        // Ambil riwayat pengajuan milik posko/user
+        // Ambil riwayat pengajuan posko
         $pengajuans = PengajuanKebutuhan::where('posko_id', $user->posko_id)
             ->latest()
             ->get();
 
-        Log::info('PengajuanController@index - Berhasil mengambil pengajuan. Jumlah record ditemukan: ' . $pengajuans->count());
+        $totalJenis = 12;
 
-        return view('dashboard.lapangan.pengajuan.index', compact('pendataan', 'estimasi', 'pengajuans'));
+        return view('dashboard.lapangan.pengajuan.index', compact(
+            'pendataan', 
+            'estimasi', 
+            'pengajuans', 
+            'totalPenerimaManfaat', 
+            'totalJenis'
+        ));
     }
 
     public function create()
@@ -79,7 +100,6 @@ class PengajuanController extends Controller
     {
         $user = Auth::user();
 
-        // Ambil data pendataan berdasarkan posko_id user
         $pendataan = Pendataan::where('posko_id', $user->posko_id)
             ->latest()
             ->first();
@@ -89,7 +109,6 @@ class PengajuanController extends Controller
                 ->with('error', 'Silakan isi Form Pendataan Pengungsi terlebih dahulu.');
         }
 
-        // 1. Validasi 12 Input Kolom Eksplisit
         $validated = $request->validate([
             'beras_kg'             => 'nullable|numeric|min:0',
             'air_minum_dus'        => 'nullable|numeric|min:0',
@@ -106,7 +125,6 @@ class PengajuanController extends Controller
             'catatan_posko'        => 'nullable|string',
         ]);
 
-        // 2. Pastikan setidaknya ada 1 barang yang bernilai lebih dari 0
         $totalInput = (float) $request->input('beras_kg', 0)
             + (float) $request->input('air_minum_dus', 0)
             + (float) $request->input('makanan_kaleng_pack', 0)
@@ -127,14 +145,11 @@ class PengajuanController extends Controller
         }
 
         try {
-            // 3. Simpan langsung 1 record berisi ke-12 kolom barang ke tabel pengajuan_kebutuhan
             $pengajuan = PengajuanKebutuhan::create([
                 'kode_pengajuan'       => 'REQ-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
                 'user_id'              => $user->id,
                 'posko_id'             => $user->posko_id ?? null,
                 'bencana_id'           => $pendataan->bencana_id ?? null,
-
-                // Map 12 Kolom Barang
                 'beras_kg'             => round((float) $request->input('beras_kg', 0), 2),
                 'air_minum_dus'        => round((float) $request->input('air_minum_dus', 0), 2),
                 'makanan_kaleng_pack'  => round((float) $request->input('makanan_kaleng_pack', 0), 2),
@@ -147,21 +162,15 @@ class PengajuanController extends Controller
                 'selimut_pcs'          => round((float) $request->input('selimut_pcs', 0), 2),
                 'matras_terpal_pcs'    => round((float) $request->input('matras_terpal_pcs', 0), 2),
                 'obat_p3k_paket'       => round((float) $request->input('obat_p3k_paket', 0), 2),
-
                 'tanggal_pengajuan'    => now(),
                 'status'               => 'pending',
                 'catatan_posko'        => $request->catatan_posko,
             ]);
 
-            Log::info('PengajuanController@store - SUCCESS. ID: ' . $pengajuan->id);
-
-            // REDIRECT KE HALAMAN STOK & DISTRIBUSI LAPANGAN (DIPERBAIKI)
             return redirect()->route('lapangan.stok.index')
                 ->with('success', 'Pengajuan kebutuhan logistik berhasil dikirimkan ke Posko Komando!');
 
         } catch (\Exception $e) {
-            Log::error('PengajuanController@store - ERROR: ' . $e->getMessage());
-
             return redirect()->back()
                 ->with('error', 'Gagal menyimpan pengajuan: ' . $e->getMessage())
                 ->withInput();

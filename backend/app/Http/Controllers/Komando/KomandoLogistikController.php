@@ -32,33 +32,31 @@ class KomandoLogistikController extends Controller
         // 2. Ambil Stok Real-time dari tabel StokInventaris milik Posko ini
         $stokDb = StokInventaris::where('posko_id', $poskoId)->get();
 
-        // 3. Ambil Pengajuan Suplai tambahan dari BPBD yang disetujui (jika ada)
+        // 3. Ambil Pengajuan Suplai tambahan dari BPBD yang disetujui
         $pengajuanDisetujui = PengajuanKebutuhan::where('posko_id', $poskoId)
             ->whereIn('status', ['disetujui', 'dalam_pengiriman', 'selesai'])
             ->get();
 
-        // Helper fungsi pencarian stok berdasarkan keyword nama barang pada StokInventaris
-        $getStok = function ($keyword) use ($stokDb) {
-            $item = $stokDb->first(function ($s) use ($keyword) {
-                return stripos($s->nama_barang, $keyword) !== false;
-            });
+        // Helper fungsi pencarian stok berdasarkan nama barang baku presisi
+        $getStokBaku = function ($namaBarangBaku) use ($stokDb) {
+            $item = $stokDb->firstWhere('nama_barang', $namaBarangBaku);
             return (float) ($item->jumlah ?? 0);
         };
 
         // Mapping 12 Kategori Stok Logistik Real-Time
         $stokLogistik = [
-            'beras_kg'             => $getStok('Beras') + $pengajuanDisetujui->sum('beras_kg'),
-            'air_minum_dus'        => $getStok('Air') + $pengajuanDisetujui->sum('air_minum_dus'),
-            'makanan_kaleng_pack'  => $getStok('Kaleng') + $pengajuanDisetujui->sum('makanan_kaleng_pack'),
-            'makanan_bayi_pack'    => $getStok('Bayi') + $pengajuanDisetujui->sum('makanan_bayi_pack'),
-            'minyak_goreng_liter'  => $getStok('Minyak') + $pengajuanDisetujui->sum('minyak_goreng_liter'),
-            'popok_bayi_pcs'       => $getStok('Popok Bayi') + $pengajuanDisetujui->sum('popok_bayi_pcs'),
-            'popok_dewasa_pcs'     => $getStok('Popok Dewasa') + $getStok('Dewasa') + $pengajuanDisetujui->sum('popok_dewasa_pcs'),
-            'pembalut_wanita_pack' => $getStok('Pembalut') + $pengajuanDisetujui->sum('pembalut_wanita_pack'),
-            'hygiene_kit_paket'    => $getStok('Hygiene') + $pengajuanDisetujui->sum('hygiene_kit_paket'),
-            'selimut_pcs'          => $getStok('Selimut') + $pengajuanDisetujui->sum('selimut_pcs'),
-            'matras_terpal_pcs'    => $getStok('Matras') + $getStok('Terpal') + $pengajuanDisetujui->sum('matras_terpal_pcs'),
-            'obat_p3k_paket'       => $getStok('P3K') + $getStok('Obat') + $pengajuanDisetujui->sum('obat_p3k_paket'),
+            'beras_kg'             => $getStokBaku('Beras') + $pengajuanDisetujui->sum('beras_kg'),
+            'air_minum_dus'        => $getStokBaku('Air Minum') + $pengajuanDisetujui->sum('air_minum_dus'),
+            'makanan_kaleng_pack'  => $getStokBaku('Makanan Kaleng') + $pengajuanDisetujui->sum('makanan_kaleng_pack'),
+            'makanan_bayi_pack'    => $getStokBaku('Makanan Bayi') + $pengajuanDisetujui->sum('makanan_bayi_pack'),
+            'minyak_goreng_liter'  => $getStokBaku('Minyak Goreng') + $pengajuanDisetujui->sum('minyak_goreng_liter'),
+            'popok_bayi_pcs'       => $getStokBaku('Popok Bayi') + $pengajuanDisetujui->sum('popok_bayi_pcs'),
+            'popok_dewasa_pcs'     => $getStokBaku('Popok Dewasa') + $pengajuanDisetujui->sum('popok_dewasa_pcs'),
+            'pembalut_wanita_pack' => $getStokBaku('Pembalut Wanita') + $pengajuanDisetujui->sum('pembalut_wanita_pack'),
+            'hygiene_kit_paket'    => $getStokBaku('Hygiene Kit') + $pengajuanDisetujui->sum('hygiene_kit_paket'),
+            'selimut_pcs'          => $getStokBaku('Selimut') + $pengajuanDisetujui->sum('selimut_pcs'),
+            'matras_terpal_pcs'    => $getStokBaku('Matras / Terpal') + $pengajuanDisetujui->sum('matras_terpal_pcs'),
+            'obat_p3k_paket'       => $getStokBaku('Obat-obatan / P3K') + $pengajuanDisetujui->sum('obat_p3k_paket'),
         ];
 
         // 4. Riwayat Permintaan & Suplai Masuk BPBD
