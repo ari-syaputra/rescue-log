@@ -17,6 +17,7 @@ class StokController extends Controller
     {
         $user = Auth::user();
 
+        // 1. Ambil Pengajuan Logistik Sub-Posko ini
         $pengajuans = PengajuanKebutuhan::where(function ($q) use ($user) {
                 if (!empty($user->posko_id) && Schema::hasColumn('pengajuan_kebutuhan', 'posko_id')) {
                     $q->where('posko_id', $user->posko_id);
@@ -27,6 +28,7 @@ class StokController extends Controller
             ->latest()
             ->get();
 
+        // 2. Ambil Pengiriman Inventaris ke Sub-Posko ini
         $pengirimansQuery = PengirimanInventaris::with(['pengajuan', 'posko']);
 
         if (!empty($user->posko_id)) {
@@ -40,13 +42,16 @@ class StokController extends Controller
 
         $pengirimans = $pengirimansQuery->latest()->get();
 
-        $stoksQuery = StokInventaris::query();
-        if (Schema::hasColumn('stok_inventaris', 'posko_id') && !empty($user->posko_id)) {
-            $stoksQuery->where(function($q) use ($user) {
-                $q->where('posko_id', $user->posko_id)->orWhereNull('posko_id');
-            });
+        // 3. Ambil Stok HANYA milik Posko ini dan Di-grouping agar 100% Tidak Ada Baris Duplikat
+        $stoks = collect();
+        if (!empty($user->posko_id)) {
+            $stoks = StokInventaris::where('posko_id', $user->posko_id)
+                ->select('nama_barang', 'kategori', 'satuan')
+                ->selectRaw('SUM(jumlah) as jumlah')
+                ->selectRaw('MAX(updated_at) as updated_at')
+                ->groupBy('nama_barang', 'kategori', 'satuan')
+                ->get();
         }
-        $stoks = $stoksQuery->latest()->get();
 
         return view('dashboard.lapangan.stok.index', compact('pengirimans', 'stoks', 'pengajuans'));
     }
@@ -76,6 +81,7 @@ class StokController extends Controller
 
                 $poskoId = $pengiriman->posko_id ?? ($p->posko_id ?? Auth::user()->posko_id);
 
+                // Mapping 12 item baku dengan Kategori dan Satuan Baku
                 $items = [
                     ['nama' => 'Beras', 'kategori' => 'Makanan Pokok', 'jumlah' => $p->beras_kg ?? 0, 'satuan' => 'Kg'],
                     ['nama' => 'Air Minum', 'kategori' => 'Konsumsi', 'jumlah' => $p->air_minum_dus ?? 0, 'satuan' => 'Dus'],

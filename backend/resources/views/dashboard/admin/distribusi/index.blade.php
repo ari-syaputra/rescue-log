@@ -243,40 +243,41 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Koordinat Gudang Utama BPBD
-    const bpbdLat = {{ $bpbd->latitude ?? -7.7956 }};
-    const bpbdLng = {{ $bpbd->longitude ?? 110.3695 }};
-    const bpbdNama = "{{ addslashes($bpbd->nama_bpbd ?? 'Gudang Utama BPBD') }}";
+    // 1. Koordinat Akurat Gudang Utama BPBD Kabupaten Bantul (-7.8893, 110.3288)
+    const bpbdLat = {{ $bpbd->latitude ?? -7.8893 }};
+    const bpbdLng = {{ $bpbd->longitude ?? 110.3288 }};
+    const bpbdNama = "{{ addslashes($bpbd->nama_kabupaten_kota ?? 'BPBD Kabupaten Bantul') }}";
 
     // Data Posko Komando dari Backend
     const poskoList = @json($poskoKomandoList ?? []);
 
-    // 2. Inisialisasi Peta
+    // 2. Inisialisasi Peta Leaflet
     const map = L.map('map-distribusi').setView([bpbdLat, bpbdLng], 11);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     // 3. Custom Marker Icon BPBD & Posko
     const bpbdIcon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color:#2563eb; width:22px; height:22px; border-radius:50%; border:3px solid white; box-shadow:0 0 8px rgba(0,0,0,0.4);"></div>`,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11]
+        className: 'custom-bpbd-dist-icon',
+        html: `<div class="w-6 h-6 bg-blue-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold">🏛️</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
 
     const poskoIcon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color:#dc2626; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow:0 0 6px rgba(0,0,0,0.4);"></div>`,
-        iconSize: [18, 18],
-        iconAnchor: [9, 9]
+        className: 'custom-posko-dist-icon',
+        html: `<div class="w-5 h-5 bg-rose-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-[9px] font-bold">🏢</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
     });
 
-    // 4. Marker Asal (BPBD)
+    // 4. Marker Asal (Gudang Utama BPBD Bantul)
     L.marker([bpbdLat, bpbdLng], { icon: bpbdIcon })
         .addTo(map)
-        .bindPopup(`<b>${bpbdNama}</b><br><span style="font-size:12px;color:#666;">Pusat Logistik Regional</span>`);
+        .bindPopup(`<b>🏛️ ${bpbdNama}</b><br><span style="font-size:11px;color:#666;">Gudang Logistik Induk BPBD</span>`);
 
     // Force map resize adjustment after load
     setTimeout(() => { map.invalidateSize(); }, 300);
@@ -293,11 +294,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Marker Posko Tujuan
                 L.marker([poskoLat, poskoLng], { icon: poskoIcon })
                     .addTo(map)
-                    .bindPopup(`<b>${posko.nama_posko}</b><br><span style="font-size:12px;color:#666;">Posko Komando Lapangan</span>`);
+                    .bindPopup(`<b>🏢 ${posko.nama_posko}</b><br><span style="font-size:11px;color:#666;">Posko Komando Lapangan</span>`);
 
                 bounds.extend([poskoLat, poskoLng]);
 
-                // Query API OSRM untuk menggambar jalanan otomatis
+                // Query API OSRM untuk menggambar jalanan otomatis dari BPBD Bantul ke Posko
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${bpbdLng},${bpbdLat};${poskoLng},${poskoLat}?overview=full&geometries=geojson`;
 
                 fetch(osrmUrl)
@@ -328,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // Autofit Peta ke semua titik lokasi
-        map.fitBounds(bounds, { padding: [40, 40] });
+        map.fitBounds(bounds, { padding: [50, 50] });
     }
 });
 </script>

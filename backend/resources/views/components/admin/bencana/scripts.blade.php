@@ -6,7 +6,8 @@
         // 1. Inisialisasi Peta Leaflet Dashboard
         const mapContainer = document.getElementById('mapBencana');
         if (mapContainer) {
-            const map = L.map('mapBencana').setView([-7.8000, 110.3700], 9);
+            // Default center awal
+            const map = L.map('mapBencana').setView([-7.8893, 110.3288], 10);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 18,
@@ -17,33 +18,92 @@
                 map.invalidateSize();
             }, 300);
 
-            // Marker Bencana Pending
+            // Koleksi titik koordinat untuk auto-zoom/fitBounds
+            const boundsGroup = [];
+
+            // Marker Bencana Pending (Oranye)
             const pendingData = @json($pendingDisasters ?? []);
             pendingData.forEach(item => {
                 const lat = item.latitude || item.koordinat_lat;
                 const lng = item.longitude || item.koordinat_lng;
                 if (lat && lng) {
-                    L.circleMarker([lat, lng], {
+                    const latNum = parseFloat(lat);
+                    const lngNum = parseFloat(lng);
+                    
+                    L.circleMarker([latNum, lngNum], {
                         color: '#d97706',
                         fillColor: '#f59e0b',
                         fillOpacity: 0.8,
                         radius: 8
                     }).addTo(map).bindPopup(`<b>[Pending] ${item.jenis_bencana || 'Bencana'}</b><br>${item.wilayah || item.lokasi}`);
+
+                    boundsGroup.push([latNum, lngNum]);
                 }
             });
 
-            // Marker Bencana Aktif
+            // Marker & Poligon Bencana Aktif (Merah)
             const activeData = @json($activeDisasters ?? []);
+            // Pada bagian Loop Bencana Aktif:
             activeData.forEach(item => {
-                if (item.koordinat_operasional_lat && item.koordinat_operasional_lng) {
-                    L.circleMarker([item.koordinat_operasional_lat, item.koordinat_operasional_lng], {
-                        color: '#dc2626',
-                        fillColor: '#ef4444',
-                        fillOpacity: 0.9,
-                        radius: 10
-                    }).addTo(map).bindPopup(`<b>[Aktif] ${item.jenis_bencana}</b><br>${item.lokasi_bencana}`);
+                const lat = parseFloat(item.koordinat_operasional_lat);
+                const lng = parseFloat(item.koordinat_operasional_lng);
+
+                if (lat && lng) {
+                    // A. Marker Titik Pusat Bencana Aktif (Merah Pulsing)
+                    const redPulseIcon = L.divIcon({
+                        className: 'custom-bencana-pulse',
+                        html: `<div class="w-5 h-5 bg-rose-600 rounded-full border-2 border-white shadow-lg animate-pulse"></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+
+                    L.marker([lat, lng], { icon: redPulseIcon })
+                        .addTo(map)
+                        .bindPopup(`<b>[Aktif] ${item.jenis_bencana}</b><br>${item.lokasi_bencana}`);
+
+                    boundsGroup.push([lat, lng]);
+
+                    // B. Render Poligon Area Terdampak (Parsing Ganda Aman String/Array)
+                    let polygonData = item.geojson_polygon;
+                    
+                    // Melakukan JSON.parse berulang jika data terbungkus sebagai string JSON
+                    while (typeof polygonData === 'string') {
+                        try { 
+                            polygonData = JSON.parse(polygonData); 
+                        } catch (e) { 
+                            break; 
+                        }
+                    }
+
+                    if (Array.isArray(polygonData) && polygonData.length >= 3) {
+                        // Konversi format [{lat: x, lng: y}] atau [[lat, lng]] secara otomatis
+                        const polygonLatLngs = polygonData.map(pt => {
+                            if (Array.isArray(pt)) return [parseFloat(pt[0]), parseFloat(pt[1])];
+                            return [parseFloat(pt.lat), parseFloat(pt.lng)];
+                        });
+
+                        L.polygon(polygonLatLngs, {
+                            color: '#dc2626',       // Red-600 (Garis tepi)
+                            weight: 2,               // Ketebalan garis
+                            fillColor: '#ef4444',    // Red-500 (Warna Isian)
+                            fillOpacity: 0.35,       // Transparansi poligon
+                            dashArray: '5, 5',       // Garis putus-putus
+                            stroke: true
+                        }).bindTooltip(`Perkiraan Zona Terdampak: ${item.jenis_bencana}`, {
+                            sticky: true,
+                            className: 'text-xs font-bold border-0 shadow-md'
+                        }).addTo(map);
+
+                        // Masukkan titik poligon ke bounds grup agar ter-fitBounds dengan pas
+                        polygonLatLngs.forEach(pt => boundsGroup.push(pt));
+                    }
                 }
             });
+
+            // Auto-fit zoom peta jika terdapat data koordinat/poligon
+            if (boundsGroup.length > 0) {
+                map.fitBounds(boundsGroup, { padding: [40, 40] });
+            }
         }
 
         // 2. Intercept Event Submit Form Validasi untuk Menampilkan SweetAlert Loading

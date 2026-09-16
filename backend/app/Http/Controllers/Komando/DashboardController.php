@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Komando;
 
 use App\Http\Controllers\Controller;
 use App\Models\Armada;
+use App\Models\Bpbd;
 use App\Models\KendalaJalan;
 use App\Models\PengajuanKebutuhan;
 use App\Models\PengirimanInventaris;
@@ -21,15 +22,21 @@ class DashboardController extends Controller
         // 1. Identifikasi Posko Komando milik User
         $posko = null;
         if ($user->posko_id) {
-            $posko = Posko::with(['children', 'bencana'])->find($user->posko_id);
+            $posko = Posko::with(['children', 'bencana', 'bpbd'])->find($user->posko_id);
         }
 
         if (!$posko) {
-            $posko = Posko::with(['children', 'bencana'])
+            $posko = Posko::with(['children', 'bencana', 'bpbd'])
                 ->where('tipe_posko', 'komando')
                 ->where('user_id', $user->id)
                 ->first();
         }
+
+        // --- TAMBAHAN PERBAIKAN DI SINI ---
+        // 2. Definisi variabel $bpbd dan $bencana dari relasi $posko
+        $bpbd = $posko?->bpbd ?? ($user->bpbd_id ? Bpbd::find($user->bpbd_id) : Bpbd::first());
+        $bencana = $posko?->bencana;
+        // ----------------------------------
 
         $poskoId = $posko ? $posko->id : null;
 
@@ -69,6 +76,8 @@ class DashboardController extends Controller
 
         return view('dashboard.komando.index', compact(
             'posko',
+            'bpbd',
+            'bencana',
             'totalPoskoList',
             'totalPoskoKecil',
             'armadaSiap',

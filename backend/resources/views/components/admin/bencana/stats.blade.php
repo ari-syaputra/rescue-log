@@ -1,28 +1,29 @@
 @props(['stats' => []])
 
 <!-- HEADER PUSAT KOMANDO INSIDEN & TOMBOL INISIASI MANUAL -->
-<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Pusat Komando Insiden</h1>
-        <p class="text-xs font-medium text-slate-500 mt-1">Monitoring real-time deteksi bencana BMKG & manajemen operasi tanggap darurat.</p>
+        <!-- Ukuran teks judul disesuaikan ke text-3xl font-extrabold -->
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Pusat Komando Insiden</h1>
+        <!-- Ukuran deskripsi disesuaikan ke text-base -->
+        <p class="text-base text-slate-500 mt-1">Monitoring real-time deteksi bencana BMKG & manajemen operasi tanggap darurat.</p>
     </div>
 
-    <div class="flex items-center gap-3">
-        <!-- Tombol Aksi Utama: Full-Page Inisiasi Bencana Manual -->
+    <div class="flex flex-wrap items-center gap-3">
         <!-- Status Indicator Live -->
-        <span class="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-            <span class="w-2 h-2 mr-2 bg-emerald-500 rounded-full animate-pulse"></span>
+        <span class="inline-flex items-center px-4 py-3 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-xs">
+            <span class="w-2.5 h-2.5 mr-2 bg-emerald-500 rounded-full animate-pulse"></span>
             Sistem Live
         </span>
         
+        <!-- Tombol Aksi Utama disesuaikan ke rounded-xl, px-5 py-3, dan text-sm font-bold -->
         <div>
             <a href="{{ route('admin.bencana.create') }}"
-            class="w-full md:w-auto shrink-0 h-10 inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-700 text-white text-sm font-medium rounded-lg hover:shadow-md focus:ring-4 focus:ring-blue-200 transition shadow-sm whitespace-nowrap cursor-pointer">
-                <x-heroicon-s-plus class="w-4 h-4 mr-2" />
-                Inisiasi Bencana Manual
+                class="w-full md:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-700 hover:bg-blue-800 shadow-md transition cursor-pointer whitespace-nowrap">
+                <x-heroicon-s-plus class="w-5 h-5 mr-2 shrink-0" />
+                <span>Inisiasi Bencana Manual</span>
             </a>
         </div>
-
     </div>
 </div>
 

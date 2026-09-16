@@ -13,6 +13,11 @@ class Bencana extends Model
         'lokasi_bencana',
         'koordinat_operasional_lat',
         'koordinat_operasional_lng',
+        'geojson_polygon',
+        'luas_area_km2',
+        'total_jiwa_terdampak',
+        'total_kk_terdampak',
+        'total_bangunan_terdampak',
         'tanggal_aktivasi',
         'tanggal_selesai',
         'status',
@@ -23,6 +28,8 @@ class Bencana extends Model
     protected $casts = [
         'tanggal_aktivasi' => 'datetime',
         'tanggal_selesai'  => 'datetime',
+        'geojson_polygon'  => 'array', // Otomatis meng-cast JSON menjadi Array PHP
+        'luas_area_km2'    => 'float',
     ];
 
     public function poskos()

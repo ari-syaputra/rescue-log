@@ -76,21 +76,16 @@
 
 <script>
     let mainMap;
-    const defaultLat = -7.7956;
-    const defaultLng = 110.3695;
 
-    const kendalaData = @json($kendalaJalans ?? []);
-    const subPoskoData = @json($totalPoskoList ?? []);
+    // Data Real dari Backend
+    const currentPosko = @json($posko ?? null);
+    const bpbdInduk = @json($bpbd ?? null);
+    const bencanaAktif = @json($bencana ?? null);
+    const subPoskoList = @json($totalPoskoList ?? []);
 
-    const activeKendala = kendalaData.length > 0 ? kendalaData : [
-        { latitude: -7.7850, longitude: 110.3750, nama_lokasi: "Desa Tegalrejo", jenis_kendala: "jembatan_putus", deskripsi: "Jembatan Utama Putus akibat Banjir", is_active: 1 },
-        { latitude: -7.8100, longitude: 110.3600, nama_lokasi: "Jl. Parangtritis Km 4", jenis_kendala: "longsor_total", deskripsi: "Akses Tertutup Longsor", is_active: 1 }
-    ];
-
-    const activePosko = subPoskoData.length > 0 ? subPoskoData : [
-        { latitude: -7.7650, longitude: 110.3600, nama_posko: "Sub-Posko Sukamaju 01", jumlah_pengungsi: 127 },
-        { latitude: -7.8150, longitude: 110.3850, nama_posko: "Sub-Posko Ngijo 02", jumlah_pengungsi: 85 }
-    ];
+    // Tentukan Pusat Peta (Prioritas: Posko Komando -> BPBD Induk -> Fallback Bantul)
+    const defaultLat = currentPosko && currentPosko.latitude ? parseFloat(currentPosko.latitude) : (bpbdInduk && bpbdInduk.latitude ? parseFloat(bpbdInduk.latitude) : -7.8893);
+    const defaultLng = currentPosko && currentPosko.longitude ? parseFloat(currentPosko.longitude) : (bpbdInduk && bpbdInduk.longitude ? parseFloat(bpbdInduk.longitude) : 110.3288);
 
     document.addEventListener("DOMContentLoaded", () => {
         // --- 1. LEAFLET MAP INIT ---
@@ -99,57 +94,117 @@
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap RESCUE-LOG'
+            attribution: '© OpenStreetMap RESCUE-LOG'
         }).addTo(mainMap);
 
-        L.circleMarker([defaultLat, defaultLng], {
-            radius: 11,
-            fillColor: '#2563eb',
-            color: '#ffffff',
-            weight: 3,
-            fillOpacity: 1
-        }).addTo(mainMap).bindPopup("<b>POSKO KOMANDO UTAMA</b>");
+        setTimeout(() => { mainMap.invalidateSize(); }, 300);
 
+        // ==========================================
+        // A. LAYER BPBD KABUPATEN (Gudang Induk)
+        // ==========================================
+        if (bpbdInduk && bpbdInduk.latitude && bpbdInduk.longitude) {
+            const bpbdIcon = L.divIcon({
+                className: 'custom-bpbd-icon',
+                html: `<div class="w-7 h-7 bg-amber-600 rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white text-[11px] font-bold">🏛️</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+
+            L.marker([parseFloat(bpbdInduk.latitude), parseFloat(bpbdInduk.longitude)], { icon: bpbdIcon })
+                .addTo(mainMap)
+                .bindPopup(`<b>🏛️ ${bpbdInduk.nama_kabupaten_kota || 'BPBD Induk'}</b><br><small>${bpbdInduk.alamat_kantor || ''}</small>`);
+        }
+
+        // ==========================================
+        // B. LAYER POSKO KOMANDO UTAMA (Posko Saya)
+        // ==========================================
+        if (currentPosko && currentPosko.latitude && currentPosko.longitude) {
+            const komandoIcon = L.divIcon({
+                className: 'custom-komando-icon',
+                html: `<div class="w-8 h-8 bg-indigo-600 rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white text-[12px] font-bold">🏢</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            L.marker([parseFloat(currentPosko.latitude), parseFloat(currentPosko.longitude)], { icon: komandoIcon })
+                .addTo(mainMap)
+                .bindPopup(`<b>🏢 ${currentPosko.nama_posko} (Posko Komando Utama)</b><br>PJ: ${currentPosko.penanggung_jawab}<br>Status: AKTIF OPERASI`);
+        }
+
+        // ==========================================
+        // C. LAYER SUB-POSKO LAPANGAN (HIJAU)
+        // ==========================================
+        let subPoskoLayerGroup = L.layerGroup().addTo(mainMap);
+
+        const subIcon = L.divIcon({
+            className: 'custom-sub-icon',
+            html: `<div class="w-6 h-6 bg-emerald-600 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold">⛺</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        subPoskoList.forEach(sp => {
+            const lat = parseFloat(sp.latitude);
+            const lng = parseFloat(sp.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                L.marker([lat, lng], { icon: subIcon })
+                    .addTo(subPoskoLayerGroup)
+                    .bindPopup(`<b>⛺ ${sp.nama_posko} (Sub-Posko Lapangan)</b><br>PJ: ${sp.penanggung_jawab}<br>Petugas: ${sp.jumlah_petugas || 0} Jiwa`);
+            }
+        });
+
+        // ==========================================
+        // D. LAYER BENCANA (TITIK MERAH + POLIGON GEOJSON)
+        // ==========================================
         let hazardLayerGroup = L.layerGroup().addTo(mainMap);
-        activeKendala.forEach(item => {
-            const lat = parseFloat(item.latitude);
-            const lng = parseFloat(item.longitude);
-            if (!isNaN(lat) && !isNaN(lng)) {
-                L.circle([lat, lng], { color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.25, radius: 600 }).addTo(hazardLayerGroup);
-                L.circleMarker([lat, lng], { radius: 8, fillColor: '#dc2626', color: '#fff', weight: 2, fillOpacity: 1, className: 'custom-pulse-marker' }).addTo(hazardLayerGroup);
-            }
-        });
 
-        let poskoLayerGroup = L.layerGroup().addTo(mainMap);
-        activePosko.forEach(posko => {
-            const lat = parseFloat(posko.latitude);
-            const lng = parseFloat(posko.longitude);
-            if (!isNaN(lat) && !isNaN(lng)) {
-                L.circleMarker([lat, lng], { radius: 9, fillColor: '#10b981', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(poskoLayerGroup);
-            }
-        });
+        if (bencanaAktif && bencanaAktif.koordinat_operasional_lat && bencanaAktif.koordinat_operasional_lng) {
+            const bLat = parseFloat(bencanaAktif.koordinat_operasional_lat);
+            const bLng = parseFloat(bencanaAktif.koordinat_operasional_lng);
 
+            const bencanaIcon = L.divIcon({
+                className: 'custom-bencana-icon',
+                html: `<div class="w-6 h-6 bg-rose-600 rounded-full border-2 border-white shadow-lg custom-pulse-marker flex items-center justify-center text-white text-[10px] font-bold">⚠️</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            L.marker([bLat, bLng], { icon: bencanaIcon })
+                .addTo(hazardLayerGroup)
+                .bindPopup(`<b>⚠️ [Bencana] ${bencanaAktif.jenis_bencana}</b><br>Lokasi: ${bencanaAktif.lokasi_bencana}`);
+
+            // Render Poligon GeoJSON Area Terdampak
+            let polygonData = bencanaAktif.geojson_polygon;
+            if (typeof polygonData === 'string') {
+                try { polygonData = JSON.parse(polygonData); } catch (e) {}
+            }
+
+            if (Array.isArray(polygonData) && polygonData.length >= 3) {
+                const polygonLatLngs = polygonData.map(pt => [parseFloat(pt.lat), parseFloat(pt.lng)]);
+                L.polygon(polygonLatLngs, {
+                    color: '#dc2626',
+                    weight: 2,
+                    fillColor: '#ef4444',
+                    fillOpacity: 0.25,
+                    dashArray: '5, 5'
+                }).bindTooltip(`Zona Terdampak: ${bencanaAktif.jenis_bencana}`, {
+                    sticky: true,
+                    className: 'text-xs font-bold border-0 shadow-md'
+                }).addTo(hazardLayerGroup);
+            }
+        }
+
+        // Toggle Layer Checkbox Control (Jika Elemen Checkbox Ada)
         document.getElementById('chkHazard')?.addEventListener('change', (e) => {
             e.target.checked ? mainMap.addLayer(hazardLayerGroup) : mainMap.removeLayer(hazardLayerGroup);
         });
         document.getElementById('chkPosko')?.addEventListener('change', (e) => {
-            e.target.checked ? mainMap.addLayer(poskoLayerGroup) : mainMap.removeLayer(poskoLayerGroup);
+            e.target.checked ? mainMap.addLayer(subPoskoLayerGroup) : mainMap.removeLayer(subPoskoLayerGroup);
         });
 
-        // --- 2. CHART.JS REAL-TIME (DETAIL TANGGAL & JAM HARIAN) ---
+        // --- 2. CHART.JS REAL-TIME ---
+        const labelsTanggalJam = ['10 Sep 08:00', '11 Sep 10:30', '12 Sep 14:15', '13 Sep 09:00', '14 Sep 16:45', '15 Sep 11:20', '16 Sep 08:00'];
 
-        // Format Label: Tanggal Harian & Jam Log Real-Time
-        const labelsTanggalJam = [
-            '10 Sep 08:00',
-            '11 Sep 10:30',
-            '12 Sep 14:15',
-            '13 Sep 09:00',
-            '14 Sep 16:45',
-            '15 Sep 11:20',
-            '15 Sep 19:00'
-        ];
-
-        // CHART 1: Tren Stok Real-Time
         const elChartStok = document.getElementById('chartTrenStokRealtime') || document.getElementById('chartTrenLogistikML');
         const ctxStok = elChartStok?.getContext('2d');
         
@@ -163,8 +218,8 @@
                 data: {
                     labels: labelsTanggalJam,
                     datasets: [{
-                        label: 'Total Stok Gudang',
-                        data: [128500, 127200, 126000, 125400, 124100, 123200, 122850],
+                        label: 'Total Stok Posko',
+                        data: [12850, 12720, 12600, 12540, 12410, 12320, 12285],
                         borderColor: '#10b981',
                         borderWidth: 2.5,
                         fill: true,
@@ -172,53 +227,21 @@
                         tension: 0.35,
                         pointRadius: 4,
                         pointBackgroundColor: '#10b981',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointHoverRadius: 7,
-                        pointHoverBackgroundColor: '#059669',
-                        pointHoverBorderColor: '#ffffff',
-                        pointHoverBorderWidth: 2
+                        pointBorderColor: '#ffffff'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            enabled: true,
-                            backgroundColor: '#0f172a',
-                            titleFont: { size: 11, weight: 'bold' },
-                            bodyFont: { size: 11 },
-                            padding: 10,
-                            cornerRadius: 8,
-                            displayColors: false,
-                            callbacks: {
-                                title: (items) => `Waktu: ${items[0].label}`,
-                                label: (ctx) => ` Sisa Stok: ${ctx.raw.toLocaleString()} Item`
-                            }
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        x: { 
-                            grid: { display: false }, 
-                            ticks: { color: '#94a3b8', font: { size: 10, weight: '600' }, maxRotation: 0 } 
-                        },
-                        y: { 
-                            grid: { color: '#f1f5f9', borderDash: [4, 4] }, 
-                            ticks: { 
-                                color: '#94a3b8', 
-                                font: { size: 10, weight: '600' }, 
-                                callback: (val) => val >= 1000 ? (val / 1000) + 'k' : val 
-                            } 
-                        }
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '600' } } },
+                        y: { grid: { color: '#f1f5f9', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10, weight: '600' } } }
                     }
                 }
             });
         }
 
-        // CHART 2: Riwayat Penyaluran Logistik Real-Time
         const elChartPenyaluran = document.getElementById('chartRiwayatPenyaluranRealtime') || document.getElementById('chartDistribusiML');
         const ctxPenyaluran = elChartPenyaluran?.getContext('2d');
         
@@ -233,7 +256,7 @@
                     labels: labelsTanggalJam,
                     datasets: [{
                         label: 'Logistik Disalurkan',
-                        data: [1300, 1200, 600, 1300, 900, 350, 400],
+                        data: [130, 120, 60, 130, 90, 35, 40],
                         borderColor: '#2563eb',
                         borderWidth: 2.5,
                         fill: true,
@@ -241,47 +264,16 @@
                         tension: 0.35,
                         pointRadius: 4,
                         pointBackgroundColor: '#2563eb',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointHoverRadius: 7,
-                        pointHoverBackgroundColor: '#1d4ed8',
-                        pointHoverBorderColor: '#ffffff',
-                        pointHoverBorderWidth: 2
+                        pointBorderColor: '#ffffff'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            enabled: true,
-                            backgroundColor: '#0f172a',
-                            titleFont: { size: 11, weight: 'bold' },
-                            bodyFont: { size: 11 },
-                            padding: 10,
-                            cornerRadius: 8,
-                            displayColors: false,
-                            callbacks: {
-                                title: (items) => `Waktu: ${items[0].label}`,
-                                label: (ctx) => ` Disalurkan: ${ctx.raw.toLocaleString()} Paket`
-                            }
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        x: { 
-                            grid: { display: false }, 
-                            ticks: { color: '#94a3b8', font: { size: 10, weight: '600' }, maxRotation: 0 } 
-                        },
-                        y: { 
-                            grid: { color: '#f1f5f9', borderDash: [4, 4] }, 
-                            ticks: { 
-                                color: '#94a3b8', 
-                                font: { size: 10, weight: '600' }, 
-                                stepSize: 500 
-                            } 
-                        }
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '600' } } },
+                        y: { grid: { color: '#f1f5f9', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10, weight: '600' } } }
                     }
                 }
             });

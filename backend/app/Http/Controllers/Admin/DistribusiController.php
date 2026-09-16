@@ -20,6 +20,8 @@ class DistribusiController extends Controller
      */
     public function index()
     {
+        $bpbd = Auth::user()->bpbd;
+
         $pengajuanMasuk = PengajuanKebutuhan::with(['posko', 'user', 'bencana'])
             ->latest()
             ->get();
@@ -33,6 +35,7 @@ class DistribusiController extends Controller
         $poskoKomandoList = Posko::where('tipe_posko', 'komando')->get();
 
         return view('dashboard.admin.distribusi.index', compact(
+            'bpbd',
             'pengajuanMasuk', 
             'stokGudang', 
             'riwayatPengiriman', 

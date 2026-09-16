@@ -17,14 +17,8 @@
             
             <div class="flex justify-between items-start gap-2">
                 <!-- Badge Sumber Insiden -->
-                <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider flex items-center gap-1.5 {{ $isManual ? 'bg-indigo-100 text-indigo-900 border border-indigo-200' : 'bg-amber-200 text-amber-900 border border-amber-300' }}">
-                    @if($isManual)
-                        <x-heroicon-s-document-text class="w-3 h-3 text-indigo-700" />
-                        <span>Laporan TRC / Manual</span>
-                    @else
-                        <x-heroicon-s-radio class="w-3 h-3 text-amber-700 animate-pulse" />
-                        <span>BMKG Auto-Detect</span>
-                    @endif
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider {{ $isManual ? 'bg-indigo-100 text-indigo-900 border border-indigo-200' : 'bg-amber-200 text-amber-900 border border-amber-300' }}">
+                    {{ $isManual ? '📝 Laporan TRC / Manual' : '🛰️ BMKG Auto-Detect' }}
                 </span>
                 
                 <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap">
@@ -51,14 +45,12 @@
                 @endif
             </div>
 
-            <div class="flex items-center gap-2 mt-4 pt-3 border-t {{ $isManual ? 'border-indigo-200/60' : 'border-amber-200/60' }}">
-                
-                <!-- TOMBOL TINJAU DAN AKTIFKAN DIUBAH KE ORANGE 600 -->
+            <div class="flex items-center gap-2 mt-3 pt-3 border-t {{ $isManual ? 'border-indigo-200/60' : 'border-amber-200/60' }}">
                 <button type="button" 
                     data-pending="{{ json_encode($pending) }}"
                     onclick="openModalValidasi(this)"
-                    class="flex-1 py-2 px-3 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-sm cursor-pointer">
-                    Tinjau dan Aktifkan
+                    class="flex-1 py-2 px-3 {{ $isManual ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700' }} text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-sm cursor-pointer">
+                    Tinjau & Aktifkan
                 </button>
 
                 <!-- Tombol Abaikan -->

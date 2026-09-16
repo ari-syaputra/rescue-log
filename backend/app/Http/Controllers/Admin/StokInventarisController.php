@@ -10,11 +10,12 @@ use Illuminate\Http\Request;
 class StokInventarisController extends Controller
 {
     /**
-     * Menampilkan halaman utama stok inventaris gudang
+     * Menampilkan halaman utama stok inventaris gudang utama BPBD
      */
     public function index()
     {
-        $stokInventaris = StokInventaris::latest()->get();
+        // Hanya ambil stok milik Gudang Induk BPBD (posko_id IS NULL)
+        $stokInventaris = StokInventaris::whereNull('posko_id')->latest()->get();
         
         // Ambil daftar posko tipe komando untuk modal pengiriman
         $poskoKomando = Posko::where('tipe_posko', 'komando')->get();
@@ -23,17 +24,20 @@ class StokInventarisController extends Controller
     }
 
     /**
-     * Menyimpan data stok inventaris baru
+     * Menyimpan data stok inventaris baru di Gudang BPBD
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'nama_barang' => 'required|string|max:255',
             'kategori'    => 'required|string|max:255',
-            'jumlah'      => 'required|integer|min:0',
+            'jumlah'      => 'required|numeric|min:0',
             'satuan'      => 'required|string|max:50',
             'keterangan'  => 'nullable|string',
         ]);
+
+        // Pastikan posko_id NULL untuk menandakan milik Gudang Utama BPBD
+        $validated['posko_id'] = null;
 
         StokInventaris::create($validated);
 
@@ -48,7 +52,7 @@ class StokInventarisController extends Controller
         $validated = $request->validate([
             'nama_barang' => 'required|string|max:255',
             'kategori'    => 'required|string|max:255',
-            'jumlah'      => 'required|integer|min:0',
+            'jumlah'      => 'required|numeric|min:0',
             'satuan'      => 'required|string|max:50',
             'keterangan'  => 'nullable|string',
         ]);

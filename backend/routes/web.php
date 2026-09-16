@@ -65,6 +65,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/bencana/{id}/reject', [Admin\BencanaController::class, 'rejectPending'])->name('bencana.reject');
         Route::post('/bencana/{id}/finish', [Admin\BencanaController::class, 'finish'])->name('bencana.finish');
 
+        Route::post('/bencana/calculate-spatial', [Admin\BencanaController::class, 'calculateSpatial'])->name('bencana.calculate-spatial');
+
         // Permintaan Kebutuhan & Restock
         Route::get('/permintaan', fn() => view('dashboard.admin.permintaan.index'))->name('permintaan');
         Route::get('/eskalasi-restock', fn() => view('dashboard.admin.eskalasi.index'))->name('eskalasi.index');

@@ -12,7 +12,7 @@
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider bg-slate-50">
+                <tr class="border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider bg-slate-200/90">
                     <th class="p-3">Jenis Bencana</th>
                     <th class="p-3">Lokasi / Wilayah</th>
                     <th class="p-3">Tanggal Aktivasi</th>
