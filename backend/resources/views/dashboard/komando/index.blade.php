@@ -33,18 +33,18 @@
     <!-- Hero Banner -->
     <x-dashboard.hero-banner 
         :posko="$posko ?? null" 
-        :armadaSiap="$armadaSiap ?? 12" 
-        :personelSiaga="$personelSiaga ?? 48" 
-        :lokasiTerdampak="$lokasiTerdampak ?? 4" 
-        :logistikTerkirim="$logistikTerkirim ?? 234" 
+        :armadaSiap="$armadaSiap ?? 0" 
+        :personelSiaga="$personelSiaga ?? 0" 
+        :lokasiTerdampak="$lokasiTerdampak ?? 0" 
+        :logistikTerkirim="$logistikTerkirim ?? 0" 
     />
 
     <!-- Summary Cards -->
     <x-dashboard.summary-cards 
-        :pengajuanMasukCount="$pengajuanMasukCount ?? 3" 
-        :distribusiBerjalanCount="$distribusiBerjalanCount ?? 1" 
-        :stokKritisCount="$stokKritisCount ?? 4" 
-        :totalPoskoKecil="$totalPoskoKecil ?? 5" 
+        :pengajuanMasukCount="$pengajuanMasukCount ?? 0" 
+        :distribusiBerjalanCount="$distribusiBerjalanCount ?? 0" 
+        :stokKritisCount="$stokKritisCount ?? 0" 
+        :totalPoskoKecil="$totalPoskoKecil ?? 0" 
     />
 
     <!-- Main Section: Live Map (Kiri) & Emergency Feed (Kanan) -->
@@ -66,6 +66,7 @@
     <!-- Log Aktivitas -->
     <x-dashboard.activity-log />
 </div>
+
 @endsection
 
 @push('scripts')

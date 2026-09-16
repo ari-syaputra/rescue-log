@@ -41,49 +41,57 @@
 
     <!-- Stat Cards Metrik -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-slate-400">Total Posko</p>
-                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ count($availablePosko) }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Semua Posko Terdaftar</p>
+        {{-- Card 1: Total Posko --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-building-office-2 class="w-6 h-6" />
             </div>
-            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-                <x-heroicon-s-building-office-2 class="w-5 h-5" />
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-900 uppercase tracking-wider">Total Posko</p>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">{{ count($availablePosko) }}</h3>
+                <p class="text-xs text-slate-900 font-medium">Semua Posko Terdaftar</p>
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-slate-400">Posko Aktif</p>
-                <h3 class="text-2xl font-black text-emerald-600 mt-1">{{ $availablePosko->where('status', 'aktif')->count() }}</h3>
-                <p class="text-[11px] text-emerald-500 font-medium mt-1">
+        {{-- Card 2: Posko Aktif --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-check-circle class="w-6 h-6" />
+            </div>
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-900 uppercase tracking-wider">Posko Aktif</p>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">{{ $availablePosko->where('status', 'aktif')->count() }}</h3>
+                <p class="text-xs text-slate-900 font-medium">
                     {{ count($availablePosko) > 0 ? round(($availablePosko->where('status', 'aktif')->count() / count($availablePosko)) * 100) : 0 }}% dari total posko
                 </p>
             </div>
-            <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-                <x-heroicon-s-check-circle class="w-5 h-5" />
+        </div>
+
+        {{-- Card 3: Standby / Siaga --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-clock class="w-6 h-6" />
+            </div>
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-900 uppercase tracking-wider">Standby / Siaga</p>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">{{ $availablePosko->where('status', '!=', 'aktif')->count() }}</h3>
+                <p class="text-xs text-slate-900 font-medium">Siap dialokasikan</p>
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-slate-400">Standby / Siaga</p>
-                <h3 class="text-2xl font-black text-amber-500 mt-1">{{ $availablePosko->where('status', '!=', 'aktif')->count() }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Siap dialokasikan</p>
+        {{-- Card 4: Target Bencana --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
+                <x-heroicon-s-exclamation-triangle class="w-6 h-6" />
             </div>
-            <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
-                <x-heroicon-s-clock class="w-5 h-5" />
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-slate-400">Target Bencana</p>
-                <h3 class="text-sm font-bold text-slate-900 mt-1 truncate max-w-[120px]">{{ $bencana->jenis_bencana ?? 'Tidak Ada' }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1 truncate max-w-[120px]">{{ $bencana->lokasi_bencana ?? 'Operasi Standby' }}</p>
-            </div>
-            <div class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center shrink-0">
-                <x-fas-house-crack class="w-4 h-4" />
+            <div class="space-y-1 min-w-0 flex-1">
+                <p class="text-xs font-bold text-slate-900 uppercase tracking-wider">Target Bencana</p>
+                <h3 class="text-base font-bold text-slate-900 truncate" title="{{ $bencana->jenis_bencana ?? 'Tidak Ada' }}">
+                    {{ $bencana->jenis_bencana ?? 'Tidak Ada' }}
+                </h3>
+                <p class="text-xs text-slate-900 font-medium truncate" title="{{ $bencana->lokasi_bencana ?? 'Operasi Standby' }}">
+                    {{ $bencana->lokasi_bencana ?? 'Operasi Standby' }}
+                </p>
             </div>
         </div>
     </div>
@@ -325,58 +333,6 @@
 
     function closeModalPlacement() {
         document.getElementById('modalPlacement').classList.add('hidden');
-    }
-
-    /* Modal Detail & Fetch Stok Logistik */
-    function openModalDetail(posko) {
-        document.getElementById('detail_nama_posko').innerText = posko.nama_posko;
-        document.getElementById('detail_pj').innerText = posko.penanggung_jawab;
-        document.getElementById('detail_hp').innerText = '📞 ' + (posko.kontak_hp || '-');
-        document.getElementById('detail_email').innerText = posko.user ? posko.user.email : 'Belum Terikat';
-        document.getElementById('detail_lokasi').innerText = '📍 ' + (posko.lokasi || 'Belum Diatur');
-
-        const badgeContainer = document.getElementById('detail_status_badge');
-        if (posko.status === 'aktif') {
-            badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-full">AKTIF OPERASI</span>`;
-        } else {
-            badgeContainer.innerHTML = `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-600 font-bold text-[10px] rounded-full">STANDBY</span>`;
-        }
-
-        const tbody = document.getElementById('detail_stok_body');
-        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Memuat data stok logistik...</td></tr>`;
-
-        fetch(`/api/posko/${posko.id}/stok`)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('detail_total_item').innerText = `${data.length} Item Logistik`;
-                if (data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400 italic">Belum ada stok logistik di posko ini.</td></tr>`;
-                    return;
-                }
-
-                let rows = '';
-                data.forEach((item, idx) => {
-                    rows += `
-                        <tr class="hover:bg-white transition">
-                            <td class="py-2.5 px-3.5 text-center font-semibold text-slate-400">${idx + 1}</td>
-                            <td class="py-2.5 px-3.5 font-bold text-slate-800">${item.nama_barang}</td>
-                            <td class="py-2.5 px-3.5"><span class="px-2 py-0.5 bg-slate-200/60 rounded text-[10px] font-semibold">${item.kategori}</span></td>
-                            <td class="py-2.5 px-3.5 text-right font-mono font-bold text-indigo-600">${item.jumlah}</td>
-                            <td class="py-2.5 px-3.5 font-semibold text-slate-500">${item.satuan}</td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = rows;
-            })
-            .catch(() => {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-500">Gagal mengambil data stok.</td></tr>`;
-            });
-
-        document.getElementById('modalDetailPosko').classList.remove('hidden');
-    }
-
-    function closeModalDetail() {
-        document.getElementById('modalDetailPosko').classList.add('hidden');
     }
 </script>
 @endpush

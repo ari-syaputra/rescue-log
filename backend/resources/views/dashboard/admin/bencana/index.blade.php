@@ -24,14 +24,6 @@
 @section('content')
 <div class="space-y-6">
 
-    <!-- Flash Notification Success -->
-    @if(session('success'))
-        <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
-            <span>{{ session('success') }}</span>
-            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800">&times;</button>
-        </div>
-    @endif
-
     <!-- Flash Notification Error (Catch Exception dari Controller) -->
     @if(session('error'))
         <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
