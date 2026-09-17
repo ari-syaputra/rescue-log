@@ -119,17 +119,22 @@
                         icon: 'warning',
                         title: 'Form Belum Lengkap',
                         text: 'Mohon isi estimasi jumlah pengungsi awal dan unggah berkas SK Status Darurat!',
-                        confirmButtonColor: '#d97706',
-                        customClass: { popup: 'rounded-2xl' }
+                        confirmButtonColor: '#1d4ed8', // Blue 700
+                        customClass: { 
+                            popup: 'rounded-3xl font-sans p-6'
+                        }
                     });
                     return false;
                 }
 
-                // Tampilkan SweetAlert Loading saat mengunggah & memproses stok
+                // Tampilkan SweetAlert Loading
                 Swal.fire({
                     title: 'Memproses Validasi TRC...',
                     text: 'Menyiapkan rekomendasi buffer stok otomatis & mengalokasikan Posko Komando.',
                     allowOutsideClick: false,
+                    customClass: {
+                        popup: 'rounded-3xl font-sans p-6'
+                    },
                     didOpen: () => {
                         Swal.showLoading();
                     }
@@ -159,7 +164,10 @@
                 icon: 'error',
                 title: 'Data Tidak Ditemukan',
                 text: 'ID bencana pending tidak valid.',
-                confirmButtonColor: '#ef4444'
+                confirmButtonColor: '#ef4444',
+                customClass: {
+                    popup: 'rounded-3xl font-sans'
+                }
             });
             return;
         }
@@ -168,7 +176,6 @@
         const modalValidasi = document.getElementById('modalValidasi');
 
         if (formValidasi && modalValidasi) {
-            // Sesuai route: POST /admin/bencana/{id}/approve
             formValidasi.action = `/admin/bencana/${data.id}/approve`;
 
             // Reset Input Form
@@ -183,8 +190,8 @@
                 const badge = document.getElementById('valJenisBadge');
                 badge.innerText = isManual ? '📝 MANUAL TRC' : '🛰️ BMKG AUTO';
                 badge.className = isManual 
-                    ? 'px-2 py-0.5 font-bold bg-indigo-100 text-indigo-900 rounded uppercase text-[10px]' 
-                    : 'px-2 py-0.5 font-bold bg-amber-100 text-amber-800 rounded uppercase text-[10px]';
+                    ? 'px-2.5 py-0.5 font-bold bg-indigo-100 text-indigo-900 rounded-md uppercase text-xs' 
+                    : 'px-2.5 py-0.5 font-bold bg-amber-100 text-amber-800 rounded-md uppercase text-xs';
             }
             if (document.getElementById('valWilayah')) document.getElementById('valWilayah').innerText = data.wilayah || data.lokasi || '-';
             if (document.getElementById('valLat')) document.getElementById('valLat').innerText = data.latitude || data.koordinat_lat || '-';
@@ -211,14 +218,16 @@
             text: "Data insiden ini akan diabaikan dan tidak masuk ke log operasi.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#6b7280',
-            cancelButtonColor: '#374151',
+            confirmButtonColor: '#1d4ed8', // Blue 700
+            cancelButtonColor: '#cbd5e1',  // Slate 300
             confirmButtonText: 'Ya, Abaikan',
             cancelButtonText: 'Batal',
+            reverseButtons: true,
             customClass: {
-                popup: 'rounded-2xl',
-                confirmButton: 'px-4 py-2 rounded-xl text-sm font-semibold',
-                cancelButton: 'px-4 py-2 rounded-xl text-sm font-semibold'
+                popup: 'rounded-3xl font-sans p-6',
+                actions: 'flex items-center justify-center gap-3 w-full mt-4',
+                confirmButton: '!m-0 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm cursor-pointer',
+                cancelButton: '!m-0 px-5 py-2.5 rounded-xl text-sm font-bold !text-slate-700 hover:!bg-slate-300 transition cursor-pointer'
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -237,15 +246,16 @@
             html: `Apakah Anda yakin ingin menyelesaikan operasi tanggap darurat <b>(${namaBencana})</b>?<br><br><span class="text-xs text-slate-500">Seluruh Posko terkait akan diubah ke status Standby/Ditutup.</span>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#10b981',
-            cancelButtonColor: '#64748b',
+            confirmButtonColor: '#1d4ed8', // Blue 700
+            cancelButtonColor: '#cbd5e1',  // Slate 300
             confirmButtonText: 'Ya, Selesaikan!',
             cancelButtonText: 'Batal',
             reverseButtons: true,
             customClass: {
-                popup: 'rounded-2xl font-sans',
-                confirmButton: 'px-4 py-2 rounded-xl text-xs font-semibold shadow-sm',
-                cancelButton: 'px-4 py-2 rounded-xl text-xs font-semibold shadow-sm'
+                popup: 'rounded-3xl font-sans p-6',
+                actions: 'flex items-center justify-center gap-3 w-full mt-4',
+                confirmButton: '!m-0 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm cursor-pointer',
+                cancelButton: '!m-0 px-5 py-2.5 rounded-xl text-sm font-bold !text-slate-700 hover:!bg-slate-300 transition cursor-pointer'
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -253,6 +263,9 @@
                     title: 'Memproses Penutupan Operasi...',
                     text: 'Mohon tunggu sebentar',
                     allowOutsideClick: false,
+                    customClass: {
+                        popup: 'rounded-3xl font-sans p-6'
+                    },
                     didOpen: () => {
                         Swal.showLoading();
                     }

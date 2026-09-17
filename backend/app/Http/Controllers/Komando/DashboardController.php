@@ -3,7 +3,14 @@
 namespace App\Http\Controllers\Komando;
 
 use App\Http\Controllers\Controller;
+use App\Models\Armada;
+use App\Models\Bpbd;
+use App\Models\KendalaJalan;
+use App\Models\PengajuanKebutuhan;
+use App\Models\PengirimanInventaris;
 use App\Models\Posko;
+use App\Models\StokInventaris;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -12,37 +19,60 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        // 1. Cari data Posko Komando milik user komandan yang login beserta relasinya
+        // 1. Identifikasi Posko Komando milik User
         $posko = null;
         if ($user->posko_id) {
             $posko = Posko::with(['children', 'bencana', 'bpbd'])->find($user->posko_id);
         }
 
         if (!$posko) {
-            $posko = Posko::with(['children', 'bencana', 'bpbd'])->where('user_id', $user->id)->first();
+            $posko = Posko::with(['children', 'bencana', 'bpbd'])
+                ->where('tipe_posko', 'komando')
+                ->where('user_id', $user->id)
+                ->first();
         }
 
-        // 2. Data Sub-Posko Bawahan (Children)
+        // --- TAMBAHAN PERBAIKAN DI SINI ---
+        // 2. Definisi variabel $bpbd dan $bencana dari relasi $posko
+        $bpbd = $posko?->bpbd ?? ($user->bpbd_id ? Bpbd::find($user->bpbd_id) : Bpbd::first());
+        $bencana = $posko?->bencana;
+        // ----------------------------------
+
+        $poskoId = $posko ? $posko->id : null;
+
         $totalPoskoList = $posko ? $posko->children : collect();
         $totalPoskoKecil = $totalPoskoList->count();
 
-        // 3. Data BPBD Induk
-        $bpbd = $posko ? $posko->bpbd : null;
+        $armadaSiap = Armada::where('status', 'tersedia')->count();
 
-        // 4. Data Bencana Terikat
-        $bencana = $posko ? $posko->bencana : null;
+        $personelSiaga = User::whereIn('role', ['petugas', 'driver'])->count();
 
-        // Metrik Ringkasan Taktis (Dapat disesuaikan dengan query DB terkait)
-        $armadaSiap = 12;
-        $personelSiaga = $totalPoskoList->sum('jumlah_petugas') > 0 ? $totalPoskoList->sum('jumlah_petugas') : 48;
-        $lokasiTerdampak = $bencana ? 1 : 0;
-        $logistikTerkirim = 234;
+        $lokasiTerdampak = $totalPoskoKecil;
 
-        $pengajuanMasukCount = 3;
-        $distribusiBerjalanCount = 1;
-        $stokKritisCount = 4;
+        $logistikTerkirim = (int) PengirimanInventaris::sum('jumlah_dikirim');
 
-        $kendalaJalans = []; // Reserved untuk fitur hambatan distribusi mendatang
+        $pengajuanMasukCount = PengajuanKebutuhan::where('status', 'menunggu')
+            ->whereHas('posko', function ($q) use ($poskoId) {
+                $q->where('tipe_posko', '!=', 'komando')
+                  ->orWhere('parent_id', $poskoId);
+            })
+            ->count();
+
+        // B. Distribusi Berjalan
+        $distribusiBerjalanCount = PengirimanInventaris::where('status_distribusi', 'Dalam Perjalanan')
+            ->whereHas('pengajuan.posko', function ($q) use ($poskoId) {
+                $q->where('tipe_posko', '!=', 'komando')
+                  ->orWhere('parent_id', $poskoId);
+            })
+            ->count();
+
+        // C. Stok Logistik Kritis (Stok <= 10 di posko komando ini)
+        $stokKritisCount = StokInventaris::where('posko_id', $poskoId)
+            ->where('jumlah', '<=', 10)
+            ->count();
+
+        // 5. Data Kendala Jalan Real-time GIS
+        $kendalaJalans = KendalaJalan::where('is_active', true)->get();
 
         return view('dashboard.komando.index', compact(
             'posko',

@@ -15,9 +15,16 @@
                 <span class="text-sm font-semibold text-slate-600">Pengajuan</span>
             </div>
             <div class="pt-1">
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-600">
-                    Menunggu Keputusan
-                </span>
+                @if($pengajuanMasukCount > 0)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        Menunggu Keputusan
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600">
+                        Semua Terproses
+                    </span>
+                @endif
             </div>
         </div>
         <div class="w-14 h-14 rounded-2xl bg-rose-50/80 text-rose-500 flex items-center justify-center shrink-0">
@@ -34,8 +41,13 @@
                 <span class="text-sm font-semibold text-slate-600">Armada</span>
             </div>
             <div class="pt-1 flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                <span class="text-xs text-slate-500 font-medium">Dalam perjalanan</span>
+                @if($distribusiBerjalanCount > 0)
+                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span class="text-xs text-slate-500 font-medium">Dalam perjalanan</span>
+                @else
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span class="text-xs text-slate-400 font-medium">Tidak ada pengiriman</span>
+                @endif
             </div>
         </div>
         <div class="w-14 h-14 rounded-2xl bg-blue-50/80 text-blue-600 flex items-center justify-center shrink-0">
@@ -52,9 +64,15 @@
                 <span class="text-sm font-semibold text-slate-600">Item Stock</span>
             </div>
             <div class="pt-1">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-600">
-                    Perlu Restok BPBD
-                </span>
+                @if($stokKritisCount > 0)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-600">
+                        Perlu Restok BPBD
+                    </span>
+                @else
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600">
+                        Stok Aman
+                    </span>
+                @endif
             </div>
         </div>
         <div class="w-14 h-14 rounded-2xl bg-amber-50/80 text-amber-600 flex items-center justify-center shrink-0">
