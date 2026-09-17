@@ -14,7 +14,7 @@
             </div>
             <div>
                 <a href="{{ route('komando.posko-kecil.create') }}"
-                    class="w-full md:w-auto shrink-0 h-10 inline-flex items-center justify-center px-4 py-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-sm font-medium rounded-lg hover:shadow-md focus:ring-4 focus:ring-orange-200 transition shadow-sm whitespace-nowrap cursor-pointer">
+                    class="w-full md:w-auto shrink-0 h-10 inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-700 text-white text-sm font-medium rounded-lg hover:shadow-md focus:ring-4 focus:ring-blue-200 transition shadow-sm whitespace-nowrap cursor-pointer">
                     <x-heroicon-s-plus class="w-4 h-4 mr-2" />
                     Tambah Sub-Posko
                 </a>

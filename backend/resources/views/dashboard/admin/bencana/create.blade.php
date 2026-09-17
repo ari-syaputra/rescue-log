@@ -20,19 +20,25 @@
 @section('content')
 <div class="space-y-6">
 
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <a href="{{ route('admin.bencana') }}" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-1 mb-1.5 transition-colors">
-                &larr; Kembali ke Pusat Komando Bencana
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
+        <div class="flex items-start gap-3">
+            <a href="{{ route('admin.bencana') }}"
+                class="p-2 rounded-xl bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all shadow-xs shrink-0 mt-0.5"
+                title="Kembali ke Pusat Komando Bencana">
+                <x-heroicon-s-arrow-left class="w-5 h-5" />
             </a>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                {{ isset($pending) ? 'Validasi Deteksi Bencana BMKG' : 'Inisiasi Laporan Bencana Manual' }}
-            </h1>
-            <p class="text-xs font-medium text-slate-500 mt-0.5">
-                {{ isset($pending) ? 'Unggah SK darurat & gambar poligon zona terdampak untuk mengaktifkan operasi bencana.' : 'Daftarkan kejadian bencana lokal & gambar poligon dampak untuk kalkulasi demografi otomatis.' }}
-            </p>
+
+            <div class="space-y-1">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    {{ isset($pending) ? 'Validasi Deteksi Bencana BMKG' : 'Inisiasi Laporan Bencana Manual' }}
+                </h1>
+                <p class="text-xs text-slate-500">
+                    {{ isset($pending) ? 'Unggah SK darurat & gambar poligon zona terdampak untuk mengaktifkan operasi bencana.' : 'Daftarkan kejadian bencana lokal & gambar poligon dampak untuk kalkulasi demografi otomatis.' }}
+                </p>
+            </div>
         </div>
-        <div class="flex items-center gap-2">
+
+        <div class="flex items-center gap-2 self-start md:self-auto">
             @if(isset($pending))
                 <span class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                     <span class="w-2 h-2 mr-2 bg-amber-500 rounded-full animate-pulse"></span>
@@ -47,7 +53,7 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.bencana.store-manual') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <form action="{{ route('admin.bencana.store-manual') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         @csrf
 
         @if(isset($pending))
@@ -56,109 +62,171 @@
 
         <input type="hidden" id="input_geojson_polygon" name="geojson_polygon">
 
-        <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <h3 class="text-sm font-extrabold text-slate-900 pb-3 border-b border-slate-100 flex items-center justify-between">
-                <span>📋 Informasi Insiden Bencana</span>
-                @if(isset($pending))
-                    <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">BMKG AUTO</span>
-                @endif
-            </h3>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Jenis Bencana <span class="text-rose-500">*</span></label>
-                @if(isset($pending))
-                    <input type="text" name="jenis_bencana" value="{{ $pending->jenis_bencana }}" readonly class="w-full text-xs font-bold border-slate-200 rounded-xl bg-slate-100/80 text-slate-700 p-2.5">
-                @else
-                    <select name="jenis_bencana" required class="w-full text-xs font-medium border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 p-2.5 bg-slate-50/50">
-                        <option value="">-- Pilih Jenis Bencana --</option>
-                        <option value="Kebakaran Pemukiman">Kebakaran Pemukiman</option>
-                        <option value="Banjir Bandang">Banjir Bandang</option>
-                        <option value="Tanah Longsor">Tanah Longsor</option>
-                        <option value="Puting Beliung">Puting Beliung</option>
-                        <option value="Kegagalan Teknologi / Industri">Kegagalan Teknologi / Industri</option>
-                        <option value="Kekeringan Ekstrem">Kekeringan Ekstrem</option>
-                        <option value="Gempabumi Lokal">Gempabumi Lokal</option>
-                    </select>
-                @endif
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Sumber Informasi Laporan <span class="text-rose-500">*</span></label>
-                @if(isset($pending))
-                    <input type="text" name="sumber_laporan" value="Integrasi Otomatis BMKG API" readonly class="w-full text-xs font-bold border-slate-200 rounded-xl bg-slate-100/80 text-slate-700 p-2.5">
-                @else
-                    <select name="sumber_laporan" required class="w-full text-xs font-medium border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 p-2.5 bg-slate-50/50">
-                        <option value="Laporan TRC Lapangan">Laporan TRC Lapangan</option>
-                        <option value="Call Center 112 / Emergency">Call Center 112 / Emergency</option>
-                        <option value="Laporan Perangkat Desa / Camat">Laporan Perangkat Desa / Camat</option>
-                        <option value="Laporan Warga">Laporan Warga</option>
-                    </select>
-                @endif
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Lokasi / Wilayah Kejadian <span class="text-rose-500">*</span></label>
-                <input type="text" name="wilayah" value="{{ $pending->wilayah ?? '' }}" required placeholder="Contoh: Dusun Sukamaju, Kecamatan Sleman" class="w-full text-xs font-medium border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 p-2.5 bg-slate-50/50">
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Latitude Pusat</label>
-                    <input type="text" id="input_lat" name="latitude" value="{{ $pending->latitude ?? '' }}" readonly required class="w-full text-xs font-mono font-bold bg-slate-100/70 border-slate-200 rounded-xl text-slate-600 p-2.5">
+        <!-- Card Informasi Insiden Bencana (Sisi Kiri) -->
+        <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+            <div class="flex flex-col h-full">
+                
+                <div class="border-b border-slate-100 pb-4 mb-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-indigo-600" />
+                            Informasi Insiden Bencana
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Detail identitas dan dokumen legalitas bencana</p>
+                    </div>
+                    @if(isset($pending))
+                        <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md">BMKG AUTO</span>
+                    @endif
                 </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Longitude Pusat</label>
-                    <input type="text" id="input_lng" name="longitude" value="{{ $pending->longitude ?? '' }}" readonly required class="w-full text-xs font-mono font-bold bg-slate-100/70 border-slate-200 rounded-xl text-slate-600 p-2.5">
+
+                <div class="space-y-4 flex-1 flex flex-col">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Jenis Bencana <span class="text-rose-500">*</span>
+                            </label>
+                            @if(isset($pending))
+                                <input type="text" name="jenis_bencana" value="{{ $pending->jenis_bencana }}" readonly 
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100/80 text-sm font-bold text-slate-700 cursor-not-allowed">
+                            @else
+                                <select name="jenis_bencana" required 
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-800 transition-all bg-slate-50/50 cursor-pointer">
+                                    <option value="">-- Pilih Jenis Bencana --</option>
+                                    <option value="Kebakaran Pemukiman">Kebakaran Pemukiman</option>
+                                    <option value="Banjir Bandang">Banjir Bandang</option>
+                                    <option value="Tanah Longsor">Tanah Longsor</option>
+                                    <option value="Puting Beliung">Puting Beliung</option>
+                                    <option value="Kegagalan Teknologi / Industri">Kegagalan Teknologi / Industri</option>
+                                    <option value="Kekeringan Ekstrem">Kekeringan Ekstrem</option>
+                                    <option value="Gempabumi Lokal">Gempabumi Lokal</option>
+                                </select>
+                            @endif
+                            @error('jenis_bencana')
+                                <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Sumber Informasi <span class="text-rose-500">*</span>
+                            </label>
+                            @if(isset($pending))
+                                <input type="text" name="sumber_laporan" value="Integrasi Otomatis BMKG API" readonly 
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100/80 text-sm font-bold text-slate-700 cursor-not-allowed">
+                            @else
+                                <select name="sumber_laporan" required 
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-800 transition-all bg-slate-50/50 cursor-pointer">
+                                    <option value="Laporan TRC Lapangan">Laporan TRC Lapangan</option>
+                                    <option value="Call Center 112 / Emergency">Call Center 112 / Emergency</option>
+                                    <option value="Laporan Perangkat Desa / Camat">Laporan Perangkat Desa / Camat</option>
+                                    <option value="Laporan Warga">Laporan Warga</option>
+                                </select>
+                            @endif
+                            @error('sumber_laporan')
+                                <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Wilayah Kejadian <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" name="wilayah" value="{{ old('wilayah', $pending->wilayah ?? '') }}" required 
+                            placeholder="Contoh: Dusun Sukamaju, Kecamatan Sleman" 
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-800 placeholder-slate-400 transition-all">
+                        @error('wilayah')
+                            <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Latitude Pusat
+                            </label>
+                            <input type="text" id="input_lat" name="latitude" value="{{ old('latitude', $pending->latitude ?? '') }}" readonly required 
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100/70 text-sm font-mono font-bold text-slate-700">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Longitude Pusat
+                            </label>
+                            <input type="text" id="input_lng" name="longitude" value="{{ old('longitude', $pending->longitude ?? '') }}" readonly required 
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100/70 text-sm font-mono font-bold text-slate-700">
+                        </div>
+                    </div>
+
+<div>
+    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 cursor-pointer">
+        Dokumen SK Status Darurat (PDF/Gambar) <span class="text-rose-500">*</span>
+    </label>
+    <input type="file" name="sk_status_darurat" required accept=".pdf,.jpg,.jpeg,.png" 
+        class="w-full text-xs text-slate-500 border border-slate-200 rounded-xl file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer bg-slate-50/50 p-1.5 cursor-pointer">
+    @error('sk_status_darurat')
+        <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
+    @enderror
+</div>
+
+                    <!-- Textarea Catatan -->
+                    <div class="flex-1 flex flex-col min-h-[100px]">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Catatan / Deskripsi Singkat
+                        </label>
+                        <textarea name="deskripsi" placeholder="Jelaskan kondisi awal dampak insiden di lokasi..." 
+                            class="w-full h-full flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-800 placeholder-slate-400 transition-all resize-none">{{ old('deskripsi', $pending->deskripsi ?? '') }}</textarea>
+                        @error('deskripsi')
+                            <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2">
+                            <x-heroicon-s-paper-airplane class="w-4 h-4" />
+                            <span>{{ isset($pending) ? 'Validasi SK & Aktifkan Posko' : 'Daftarkan Insiden ke Pusat Komando' }}</span>
+                        </button>
+                    </div>
+
                 </div>
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Dokumen SK Status Darurat (PDF/Gambar) <span class="text-rose-500">*</span>
-                </label>
-                <input type="file" name="sk_status_darurat" required accept=".pdf,.jpg,.jpeg,.png" class="w-full text-xs text-slate-500 border border-slate-200 rounded-xl file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 bg-slate-50/50 p-1.5">
-            </div>
-
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan / Deskripsi Singkat</label>
-                <textarea name="deskripsi" rows="2" placeholder="Jelaskan kondisi awal dampak insiden di lokasi..." class="w-full text-xs font-medium border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 p-2.5 bg-slate-50/50">{{ $pending->deskripsi ?? '' }}</textarea>
-            </div>
-
-            <div class="pt-2">
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <span>🚀</span> {{ isset($pending) ? 'Validasi SK & Aktifkan Posko' : 'Daftarkan Insiden ke Pusat Komando' }}
-                </button>
             </div>
         </div>
 
-        <div class="lg:col-span-7 space-y-4">
+        <!-- Section Peta & Demografi Spasial (Sisi Kanan) -->
+        <div class="lg:col-span-7 space-y-4 flex flex-col justify-between">
             
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                            <span>📍</span> Plotting Titik & Area Bencana
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <x-heroicon-o-map-pin class="w-5 h-5 text-indigo-600" />
+                            Plotting Titik dan Area Bencana
                         </h3>
                         <p id="instructionText" class="text-[11px] font-semibold text-blue-600 mt-0.5">
                             {{ isset($pending) ? 'Langkah 2: Titik BMKG dikunci. Klik tombol "Gambar Poligon Area".' : 'Langkah 1: Klik pada peta untuk tentukan lokasi pusat bencana.' }}
                         </p>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="btnLockPoint" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl {{ isset($pending) ? 'hidden' : 'flex' }} items-center gap-1.5 transition-all cursor-pointer shadow-2xs">
-                            <span>📌</span> Kunci Titik Bencana
+                    <div class="flex items-center gap-2.5">
+                        <button type="button" id="btnLockPoint" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl {{ isset($pending) ? 'hidden' : 'flex' }} items-center gap-2 transition-all cursor-pointer shadow-xs">
+                            <x-heroicon-s-lock-closed class="w-4 h-4" />
+                            Kunci Titik Bencana
                         </button>
 
-                        <button type="button" id="btnStartDraw" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs rounded-xl {{ isset($pending) ? 'flex' : 'hidden' }} items-center gap-1.5 transition-all cursor-pointer">
-                            <span>📐</span> Gambar Poligon Area
+                        <button type="button" id="btnStartDraw" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl {{ isset($pending) ? 'flex' : 'hidden' }} items-center gap-2 transition-all cursor-pointer shadow-xs">
+                            <x-heroicon-o-pencil-square class="w-4 h-4" />
+                            <span id="btnStartDrawText">Gambar Poligon Area</span>
                         </button>
 
-                        <button type="button" id="btnFinishDraw" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl hidden items-center gap-1.5 transition-all cursor-pointer shadow-2xs animate-pulse">
-                            <span>✅</span> Selesai Poligon
+                        <button type="button" id="btnFinishDraw" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl hidden items-center gap-2 transition-all cursor-pointer shadow-xs">
+                            <x-heroicon-s-check-circle class="w-4 h-4" />
+                            Selesai Poligon
                         </button>
 
-                        <button type="button" id="btnResetMap" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl {{ isset($pending) ? 'flex' : 'hidden' }} transition-all cursor-pointer">
-                            🔄 Reset Peta
+                        <button type="button" id="btnResetMap" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl hidden items-center gap-2 transition-all cursor-pointer">
+                            <x-heroicon-o-arrow-path class="w-4 h-4" />
+                            Reset Peta
                         </button>
                     </div>
                 </div>
@@ -169,7 +237,8 @@
             <div id="cardDemografi" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-                        <span>🧠</span> Smart Demographics Estimator (Spatial Overlay)
+                        <x-heroicon-o-cpu-chip class="w-4 h-4 text-indigo-600" />
+                        Smart Demographics Estimator
                     </h4>
                     <span id="badgeSpatialStatus" class="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 px-2.5 py-1 rounded-full">
                         Menunggu Titik & Poligon...
@@ -256,6 +325,7 @@
         const instructionText = document.getElementById('instructionText');
         const btnLockPoint    = document.getElementById('btnLockPoint');
         const btnStartDraw   = document.getElementById('btnStartDraw');
+        const btnStartDrawText = document.getElementById('btnStartDrawText');
         const btnFinishDraw  = document.getElementById('btnFinishDraw');
         const btnResetMap    = document.getElementById('btnResetMap');
 
@@ -267,9 +337,13 @@
             instructionText.className = "text-[11px] font-semibold text-emerald-600 mt-0.5";
 
             btnLockPoint.classList.add('hidden');
+            btnLockPoint.classList.remove('flex');
+
             btnStartDraw.classList.remove('hidden');
             btnStartDraw.classList.add('flex');
+            
             btnResetMap.classList.remove('hidden');
+            btnResetMap.classList.add('flex');
         });
 
         btnStartDraw.addEventListener('click', () => {
@@ -291,6 +365,8 @@
             instructionText.className = "text-[11px] font-semibold text-amber-600 mt-0.5 animate-pulse";
 
             btnStartDraw.classList.add('hidden');
+            btnStartDraw.classList.remove('flex');
+
             btnFinishDraw.classList.remove('hidden');
             btnFinishDraw.classList.add('flex');
         });
@@ -306,24 +382,26 @@
             drawnItems.clearLayers();
             drawnItems.addLayer(layer);
 
-            const latLngs = layer.getLatLngs()[0];
-            const coordinatesArray = latLngs.map(point => [point.lat, point.lng]);
-
-            document.getElementById('input_geojson_polygon').value = JSON.stringify(coordinatesArray);
+            const geoJsonData = layer.toGeoJSON();
+            document.getElementById('input_geojson_polygon').value = JSON.stringify(geoJsonData.geometry);
 
             instructionText.textContent = "✓ Selesai: Titik lokasi dan poligon area terdampak berhasil dibuat!";
             instructionText.className = "text-[11px] font-bold text-emerald-600 mt-0.5";
 
             btnFinishDraw.classList.add('hidden');
-            btnStartDraw.classList.remove('hidden');
-            btnStartDraw.textContent = "📐 Gambar Ulang Poligon";
+            btnFinishDraw.classList.remove('flex');
 
-            calculateSpatialData(coordinatesArray);
+            btnStartDraw.classList.remove('hidden');
+            btnStartDraw.classList.add('flex');
+            if (btnStartDrawText) btnStartDrawText.textContent = "Gambar Ulang Poligon";
+
+            calculateSpatialData(geoJsonData.geometry);
         });
 
+        // Event listener saat tombol Reset Peta diklik
         btnResetMap.addEventListener('click', () => {
-            isPointLocked = isPendingFromBmkg;
-            if (!isPendingFromBmkg) marker.dragging.enable();
+            isPointLocked = false;
+            marker.dragging.enable();
 
             drawnItems.clearLayers();
             document.getElementById('input_geojson_polygon').value = '';
@@ -332,23 +410,27 @@
 
             resetDemographicsCard();
 
-            if (isPendingFromBmkg) {
-                instructionText.textContent = "Langkah 2: Titik BMKG dikunci. Klik tombol 'Gambar Poligon Area'.";
-                instructionText.className = "text-[11px] font-semibold text-blue-600 mt-0.5";
-                btnStartDraw.classList.remove('hidden');
-                btnStartDraw.classList.add('flex');
-            } else {
-                instructionText.textContent = "Langkah 1: Klik pada peta untuk tentukan lokasi pusat bencana.";
-                instructionText.className = "text-[11px] font-semibold text-blue-600 mt-0.5";
-                btnLockPoint.classList.remove('hidden');
-                btnStartDraw.classList.add('hidden');
-            }
+            instructionText.textContent = "Langkah 1: Klik pada peta untuk tentukan lokasi pusat bencana.";
+            instructionText.className = "text-[11px] font-semibold text-blue-600 mt-0.5";
+
+            // Munculkan kembali tombol orange "Kunci Titik Bencana"
+            btnLockPoint.classList.remove('hidden');
+            btnLockPoint.classList.add('flex');
+
+            // Sembunyikan tombol lainnya
+            btnStartDraw.classList.add('hidden');
+            btnStartDraw.classList.remove('flex');
 
             btnFinishDraw.classList.add('hidden');
-            btnStartDraw.textContent = "📐 Gambar Poligon Area";
+            btnFinishDraw.classList.remove('flex');
+
+            btnResetMap.classList.add('hidden');
+            btnResetMap.classList.remove('flex');
+
+            if (btnStartDrawText) btnStartDrawText.textContent = "Gambar Poligon Area";
         });
 
-        function calculateSpatialData(coords) {
+        function calculateSpatialData(geoJsonGeometry) {
             document.getElementById('badgeSpatialStatus').textContent = "⚡ Menghitung Spasial...";
             document.getElementById('badgeSpatialStatus').className = "text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full";
 
@@ -358,7 +440,7 @@
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": "{{ csrf_token() }}"
                 },
-                body: JSON.stringify({ coordinates: coords })
+                body: JSON.stringify({ geojson: geoJsonGeometry })
             })
             .then(res => res.json())
             .then(res => {
