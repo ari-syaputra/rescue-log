@@ -105,4 +105,21 @@ class SubPoskoController extends Controller
         return redirect()->route('komando.posko-kecil.index')
             ->with('success', "Sub-Posko '{$subPosko->nama_posko}' berhasil didaftarkan. Access Key: {$kodeUndangan}");
     }
+
+    public function show($id)
+    {
+        $komandoPoskoId = Auth::user()->posko_id;
+
+        $subPosko = Posko::where('parent_id', $komandoPoskoId)
+            ->where('tipe_posko', 'lapangan_kecil')
+            ->with([
+                'bencana',
+                'users',
+                'fotos' => fn($q) => $q->latest(),
+                'stokInventaris.inventarisGudang' // Menyesuaikan relasi stok jika ada
+            ])
+            ->findOrFail($id);
+
+        return view('dashboard.komando.posko-kecil.show', compact('subPosko'));
+    }
 }

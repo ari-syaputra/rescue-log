@@ -7,54 +7,33 @@
         <span class="text-xs text-slate-400 font-medium">Foto Lapangan</span>
     </div>
 
-    @error('fotos.*')
-        <div class="text-red-500 text-xs bg-red-50 p-2 rounded-lg border border-red-100">{{ $message }}</div>
-    @enderror
-
-    <!-- Area Grid Foto: dibuat flex-1 & min-h-[260px] agar tingginya otomatis sama dengan Peta -->
+    <!-- Area Grid Foto -->
     <div class="grid grid-cols-3 gap-3 flex-1 min-h-[260px]">
-        
-        <!-- 1. Looping Foto dari Relasi -->
-        @if(isset($subPosko->fotos) && !empty($subPosko->fotos))
-            @foreach($subPosko->fotos as $foto)
-                <div class="h-full w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative group cursor-pointer"
-                     onclick="openLightbox('{{ asset('storage/' . $foto->path_file) }}', '{{ basename($foto->path_file) }}')"
-                     title="Klik untuk memperbesar">
-                    <img src="{{ asset('storage/' . $foto->path_file) }}" alt="Dokumentasi" class="w-full h-full object-cover transition duration-300 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
-                        </svg>
-                    </div>
+        @forelse($subPosko->fotos ?? [] as $foto)
+            <div class="h-28 w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative group cursor-pointer"
+                 onclick="openLightbox('{{ asset('storage/' . $foto->path_file) }}', '{{ basename($foto->path_file) }}')"
+                 title="Klik untuk memperbesar">
+                <img src="{{ asset('storage/' . $foto->path_file) }}" alt="Dokumentasi" class="w-full h-full object-cover transition duration-300 group-hover:scale-110">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                    </svg>
                 </div>
-            @endforeach
-        @endif
-
-        <!-- 2. Form Upload Foto -->
-        <form action="{{ route('lapangan.dokumentasi.upload') }}" method="POST" enctype="multipart/form-data" class="h-full w-full">
-            @csrf
-            <label class="h-full w-full rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-100 hover:border-blue-400 hover:text-blue-500 transition cursor-pointer p-4">
-                <svg class="w-7 h-7 stroke-2 mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </div>
+        @empty
+            <div class="col-span-full py-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2">
+                <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
-                <span class="text-xs font-bold uppercase tracking-wider">Upload</span>
-                <input type="file" name="fotos[]" class="hidden" accept="image/jpeg, image/png, image/jpg" multiple onchange="this.form.submit()">
-            </label>
-        </form>
-
-        <!-- 3. Indikator Jumlah Foto -->
-        <div class="h-full w-full rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-slate-400 p-4">
-            <span class="text-xl font-extrabold text-slate-700">
-                {{ isset($subPosko->fotos) && count($subPosko->fotos) > 0 ? '+' . count($subPosko->fotos) : '0' }}
-            </span>
-            <span class="text-xs font-semibold text-slate-400 mt-1">Foto Tersimpan</span>
-        </div>
+                <span>Belum ada foto dokumentasi diunggah dari lapangan.</span>
+            </div>
+        @endforelse
     </div>
 
-    <!-- Footer Status Dokumentasi (Sejajar dengan Footer Peta) -->
+    <!-- Footer Status Dokumentasi -->
     <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100 text-slate-500">
-        <span>Total Foto: <strong class="text-slate-700">{{ isset($subPosko->fotos) ? count($subPosko->fotos) : 0 }} Berkas</strong></span>
-        <span class="text-blue-600 font-medium">Format: JPG, PNG</span>
+        <span>Total Foto: <strong class="text-slate-700">{{ count($subPosko->fotos ?? []) }} Berkas</strong></span>
+        <span class="text-indigo-600 font-medium">Posko Komando View</span>
     </div>
 </div>
 
