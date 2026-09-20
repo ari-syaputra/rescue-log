@@ -29,7 +29,6 @@
             <div class="flex items-center justify-between mt-3">
                 <h4 class="font-bold text-slate-900 text-sm">{{ $pending->jenis_bencana ?? 'BENCANA' }}</h4>
                 
-                {{-- Menampilkan Badge Magnitudo jika ada data Gempa --}}
                 @if(isset($pending->magnitude) || str_contains(strtolower($pending->jenis_bencana ?? ''), 'gempa'))
                     <span class="px-2 py-0.5 bg-rose-100 text-rose-700 font-extrabold text-xs rounded-md border border-rose-200">
                         {{ $pending->magnitude ?? '5.0' }} SR / M
@@ -46,12 +45,11 @@
             </div>
 
             <div class="flex items-center gap-2 mt-3 pt-3 border-t {{ $isManual ? 'border-indigo-200/60' : 'border-amber-200/60' }}">
-                <button type="button" 
-                    data-pending="{{ json_encode($pending) }}"
-                    onclick="openModalValidasi(this)"
-                    class="flex-1 py-2 px-3 {{ $isManual ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700' }} text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-sm cursor-pointer">
+                <!-- MENGGUNAKAN LINK REDIRECT UNTUK AKTIVASI -->
+                <a href="{{ route('admin.bencana.create', ['pending_id' => $pending->id]) }}" 
+                   class="flex-1 py-2 px-3 {{ $isManual ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700' }} text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-sm cursor-pointer">
                     Tinjau & Aktifkan
-                </button>
+                </a>
 
                 <!-- Tombol Abaikan -->
                 <form id="form-abaikan-{{ $pending->id }}" action="{{ route('admin.bencana.reject', $pending->id) }}" method="POST">
@@ -65,7 +63,6 @@
         </div>
     @empty
         <div class="text-center py-12 text-slate-400">
-            <x-heroicon-s-check-circle class="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p class="text-sm font-semibold text-slate-500">Tidak ada deteksi insiden baru</p>
             <p class="text-xs text-slate-400 mt-0.5">Seluruh laporan insiden telah ditinjau</p>
         </div>

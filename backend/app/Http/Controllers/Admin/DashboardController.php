@@ -5,35 +5,144 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Posko;
 use App\Models\Bencana;
+use App\Models\PengajuanKebutuhan;
+use App\Models\Pengiriman;
+use App\Models\PengirimanInventaris;
+use App\Models\StokInventaris;
+use App\Models\Pendataan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = auth()->user();
+        $bpbd = $user->bpbd;
 
         // 1. Ambil data Posko Komando milik BPBD user
         $posko = Posko::where('tipe_posko', 'komando')
             ->where('bpbd_id', $user->bpbd_id)
             ->first();
 
-        // 2. Ambil data bencana aktif (jika ada)
+        // 2. Ambil data Bencana Aktif
         $bencanaAktif = null;
         if ($posko && $posko->bencana_id) {
             $bencanaAktif = $posko->bencana;
         } else {
-            $bencanaAktif = Bencana::where('status', 'aktif')->first();
+            $bencanaAktif = Bencana::where('status', 'sedang_berjalan')->first();
         }
 
-        $bpbd = $user->bpbd;
+        // 3. STATISTIK UTAMA
+        $permintaanMasukCount = PengajuanKebutuhan::where('status', 'menunggu')->count();
+        $distribusiBerjalanCount = Pengiriman::where('status_pengiriman', 'dalam_perjalanan')->count();
 
-        return view('dashboard.admin.index', compact('posko', 'bencanaAktif', 'bpbd'));
+        // 4. CHART TREN BENCANA (7 Hari Terakhir)
+        $chartLabels = [];
+        $chartBencanaData = [];
+        $chartDitanganiData = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $chartLabels[] = $date->translatedFormat('d M');
+
+            $countTotal = Bencana::whereDate('created_at', $date->toDateString())->count();
+            $countSelesai = Bencana::whereDate('created_at', $date->toDateString())
+                ->where('status', 'selesai')
+                ->count();
+
+            $chartBencanaData[] = $countTotal;
+            $chartDitanganiData[] = $countSelesai;
+        }
+
+        // 5. STOK LOGISTIK (Mengambil dari Tabel stok_inventaris)
+        $totalBarang = class_exists(StokInventaris::class) ? StokInventaris::count() : 0;
+        
+        $stokColumn = 'jumlah_stok';
+        if (!Schema::hasColumn('stok_inventaris', 'jumlah_stok')) {
+            $stokColumn = Schema::hasColumn('stok_inventaris', 'stok') ? 'stok' : 'jumlah';
+        }
+
+        if (class_exists(StokInventaris::class) && Schema::hasColumn('stok_inventaris', $stokColumn)) {
+            $stokTersedia = StokInventaris::where($stokColumn, '>', 50)->count();
+            $stokMenipis  = StokInventaris::whereBetween($stokColumn, [1, 50])->count();
+            $stokHabis    = StokInventaris::where($stokColumn, '<=', 0)->count();
+        } else {
+            $stokTersedia = $totalBarang;
+            $stokMenipis  = 0;
+            $stokHabis    = 0;
+        }
+
+        $persenTersedia = $totalBarang > 0 ? round(($stokTersedia / $totalBarang) * 100) : 0;
+
+        // 6. PERMINTAAN MASUK (5 Pengajuan Terbaru)
+        $permintaanTerbaru = PengajuanKebutuhan::with('posko')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // 7. TABEL DISTRIBUSI TERAKHIR (5 Pengiriman Terbaru)
+        $distribusiTerakhir = Pengiriman::with(['poskoTujuan', 'armada'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // 8. RINGKASAN LAPORAN
+        $totalBencanaDitangani = Bencana::where('status', 'selesai')->count();
+
+        if (class_exists(PengirimanInventaris::class)) {
+            $totalPaketTersalurkan = (int) PengirimanInventaris::whereIn('status_distribusi', ['Selesai', 'Terkirim', 'Diterima'])
+                ->sum('jumlah_dikirim');
+        } else {
+            $totalPaketTersalurkan = 0;
+        }
+
+        // Deteksi Otomatis Kolom Jumlah Jiwa di Tabel Pendataans
+        $jiwaColumn = null;
+        if (Schema::hasColumn('pendataans', 'total_jiwa')) {
+            $jiwaColumn = 'total_jiwa';
+        } elseif (Schema::hasColumn('pendataans', 'jumlah_pengungsi')) {
+            $jiwaColumn = 'jumlah_pengungsi';
+        } elseif (Schema::hasColumn('pendataans', 'total_pengungsi')) {
+            $jiwaColumn = 'total_pengungsi';
+        } elseif (Schema::hasColumn('pendataans', 'jiwa')) {
+            $jiwaColumn = 'jiwa';
+        } elseif (Schema::hasColumn('pendataans', 'jumlah')) {
+            $jiwaColumn = 'jumlah';
+        } elseif (Schema::hasColumn('pendataans', 'jumlah_jiwa')) {
+            $jiwaColumn = 'jumlah_jiwa';
+        }
+
+        if ($jiwaColumn) {
+            $totalPengungsiTerlayani = Pendataan::sum($jiwaColumn) ?? 0;
+        } else {
+            // Fallback hitung jumlah baris record pendataan
+            $totalPengungsiTerlayani = Pendataan::count();
+        }
+
+        return view('dashboard.admin.index', compact(
+            'posko', 
+            'bencanaAktif', 
+            'bpbd',
+            'permintaanMasukCount',
+            'distribusiBerjalanCount',
+            'chartLabels',
+            'chartBencanaData',
+            'chartDitanganiData',
+            'totalBarang',
+            'stokTersedia',
+            'stokMenipis',
+            'stokHabis',
+            'persenTersedia',
+            'permintaanTerbaru',
+            'distribusiTerakhir',
+            'totalBencanaDitangani',
+            'totalPaketTersalurkan',
+            'totalPengungsiTerlayani'
+        ));
     }
 
-    /**
-     * Mendaftarkan Posko Komando Utama baru oleh BPBD
-     */
     public function storePosko(Request $request)
     {
         $request->validate([
@@ -57,38 +166,26 @@ class DashboardController extends Controller
             'longitude'        => $bpbd->longitude ?? null,
         ]);
 
-        // Mengirimkan Session Flash 'success' untuk Toast Kanan Atas
         return redirect()->back()->with('success', 'Posko Komando "' . $posko->nama_posko . '" berhasil didaftarkan!');
     }
 
-    /**
-     * Mengaktifkan Posko Komando untuk Tanggap Darurat Bencana
-     */
     public function aktifkanPosko(Request $request, $id)
     {
         $posko = Posko::findOrFail($id);
+        $bencanaAktif = Bencana::where('status', 'sedang_berjalan')->first();
 
-        // Cari bencana yang sedang aktif
-        $bencanaAktif = Bencana::where('status', 'aktif')->first();
-
-        // Mengirimkan Session Flash 'error' jika bencana tidak ditemukan
         if (!$bencanaAktif) {
             return redirect()->back()->with('error', 'Gagal mengaktifkan posko: Tidak ada kejadian bencana aktif di sistem!');
         }
 
-        // Update status posko & hubungkan dengan ID Bencana
         $posko->update([
             'status'     => 'aktif',
             'bencana_id' => $bencanaAktif->id,
         ]);
 
-        // Mengirimkan Session Flash 'success' untuk Toast Kanan Atas
         return redirect()->back()->with('success', 'Posko Komando berhasil diaktifkan untuk bencana ' . $bencanaAktif->jenis_bencana . '!');
     }
 
-    /**
-     * Menyelesaikan Operasi Tanggap Darurat dan Menutup Posko
-     */
     public function selesaikanPosko(Request $request, $id)
     {
         $posko = Posko::findOrFail($id);
@@ -104,7 +201,6 @@ class DashboardController extends Controller
             'bencana_id' => null,
         ]);
 
-        // Mengirimkan Session Flash 'success' untuk Toast Kanan Atas
         return redirect()->back()->with('success', 'Posko Komando telah dinonaktifkan & tanggap darurat dinyatakan selesai.');
     }
 }

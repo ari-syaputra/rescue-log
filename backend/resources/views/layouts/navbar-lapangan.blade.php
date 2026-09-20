@@ -19,10 +19,8 @@
             return;
         }
 
-        // 2. Cek koneksi nyata dengan melakukan fetch ke endpoint publik eksternal (misal favicon Google/Cloudflare)
-        // atau mendeteksi jika koneksi benar-benar terputus total dari internet luar.
+        // 2. Cek koneksi nyata dengan melakukan fetch ke endpoint publik eksternal
         try {
-            // Menggunakan mode no-cors untuk menghindari masalah CORS dengan external ping
             const response = await fetch('https://www.google.com/favicon.ico', { 
                 mode: 'no-cors', 
                 cache: 'no-store',
@@ -30,7 +28,7 @@
             });
             this.isOnline = true;
         } catch (error) {
-            // Jika gagal menghubungi internet luar, set ke Offline (Mode Lokal)
+            // Jika gagal menghubungi internet luar, set ke Offline
             this.isOnline = false;
         }
     }
@@ -38,54 +36,51 @@
     <div class="w-full px-4 sm:px-6 lg:px-10">
         <div class="flex justify-between h-16">
 
+            <!-- KIRI: Logo & Brand -->
             <div class="flex items-center space-x-3 cursor-text select-none">
                 <!-- Logo: Selalu Tampil (HP & Desktop) -->
-                <div
-                    class="w-10 h-10 rounded-xl bg-white/60 border border-white/20 backdrop-blur-md p-1.5 flex items-center justify-center shrink-0 shadow-sm">
-                    <img src="{{ asset('img/Rescue-log.png') }}" alt="Logo RESCUE-LOG"
-                        class="h-full w-full object-contain">
+                <div class="w-10 h-10 rounded-xl bg-white/60 border border-white/20 backdrop-blur-md p-1.5 flex items-center justify-center shrink-0 shadow-sm">
+                    <img src="{{ asset('img/Rescue-log.png') }}" alt="Logo RESCUE-LOG" class="h-full w-full object-contain">
                 </div>
 
                 <div class="hidden sm:flex flex-col">
                     <span class="font-black text-white text-lg tracking-wider uppercase leading-none">
                         RESCUE-LOG
                     </span>
-                    <span
-                        class="text-[10px] font-semibold tracking-widest text-blue-200/80 uppercase mt-1 leading-none">
+                    <span class="text-[10px] font-semibold tracking-widest text-blue-200/80 uppercase mt-1 leading-none">
                         Sistem Posko Kebencanaan
                     </span>
                 </div>
             </div>
 
+            <!-- KANAN: Indikator Online/Offline (Ikon Only) & Profile Dropdown -->
             <div class="flex items-center space-x-2 sm:space-x-4" x-data="{ open: false }">
 
+                <!-- INDIKATOR IKON STATUS KONEKSI (RINGKAS & COMPACT) -->
                 <div class="flex items-center">
+                    <!-- Saat Online: Ikon Wifi Hijau -->
                     <template x-if="isOnline">
-                        <span
-                            class="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-100 border border-emerald-300/30 transition-all">
-                            <span class="w-2 h-2 mr-1.5 sm:mr-2 bg-emerald-300 rounded-full animate-pulse"></span>
-                            <x-heroicon-o-wifi class="w-3.5 h-3.5 sm:mr-1.5" />
-                            <span class="hidden md:inline">Online</span>
+                        <span class="inline-flex items-center justify-center p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 transition-all duration-300" title="Sinyal Online">
+                            <x-heroicon-o-wifi class="w-4 h-4 text-emerald-300" />
                         </span>
                     </template>
 
+                    <!-- Saat Offline: Ikon Wifi Dicoret (Offline) Merah -->
                     <template x-if="!isOnline">
-                        <span
-                            class="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-100 border border-rose-300/30 transition-all">
-                            <span class="w-2 h-2 mr-1.5 sm:mr-2 bg-rose-300 rounded-full"></span>
-                            <x-heroicon-o-x-mark class="w-3.5 h-3.5 sm:mr-1.5" />
-                            <span class="hidden sm:inline">Offline (Mode Lokal)</span>
-                            <span class="sm:hidden text-[11px]">Offline</span>
+                        <span class="inline-flex items-center justify-center p-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-400/30 transition-all duration-300 animate-pulse" title="Terputus (Offline Mode)">
+                            <svg class="w-4 h-4 text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M12 20h.01m-4.08-3.596a5.5 5.5 0 014.07-1.404m3.708 1.404a5.5 5.5 0 00.37-.371m-7.08-3.125a10.026 10.026 0 013.012-1.312m6.128 1.312a9.96 9.96 0 011.892 1.813M1.394 9.393a15.94 15.94 0 014.243-2.923m11.314 0a15.94 15.94 0 014.243 2.923" />
+                            </svg>
                         </span>
                     </template>
                 </div>
 
+                <!-- USER PROFILE DROPDOWN -->
                 <div class="relative">
                     <button @click="open = !open" type="button"
                         class="flex items-center space-x-2 sm:space-x-3 focus:outline-none py-1 px-1.5 sm:px-2.5 cursor-pointer">
 
-                        <div
-                            class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
+                        <div class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
                             <x-heroicon-s-user class="w-5 h-5" />
                         </div>
 
@@ -103,7 +98,9 @@
                             ::class="{ 'rotate-180': open }" />
                     </button>
 
-                    <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-100"
+                    <!-- DROPDOWN MENU -->
+                    <div x-show="open" @click.away="open = false" 
+                        x-transition:enter="transition ease-out duration-100"
                         x-transition:enter-start="transform opacity-0 scale-95"
                         x-transition:enter-end="transform opacity-100 scale-100"
                         x-transition:leave="transition ease-in duration-75"

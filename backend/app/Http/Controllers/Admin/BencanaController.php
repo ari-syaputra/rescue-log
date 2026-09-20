@@ -104,34 +104,36 @@ class BencanaController extends Controller
             // 1. Simpan Berkas SK Status Darurat
             $skPath = $request->file('sk_status_darurat')->store('sk_darurat', 'public');
 
-            // 2. Kalkulasi Data Spasial Menggunakan Overpass API (Live Satellite OSM)
+            // 2. Kalkulasi Data Spasial
             $geojsonPolygon = null;
             $luasAreaKm2 = 0;
             $totalJiwa = 0;
             $totalKK = 0;
             $totalBangunan = 0;
 
-            // Pada method storeManual():
             if (!empty($validated['geojson_polygon'])) {
-                // Decode string JSON dari Leaflet Draw menjadi Array
-                $coords = is_string($validated['geojson_polygon']) 
+                $geoJsonData = is_string($validated['geojson_polygon']) 
                     ? json_decode($validated['geojson_polygon'], true) 
                     : $validated['geojson_polygon'];
 
-                if (is_array($coords) && count($coords) >= 3) {
-                    $geojsonPolygon = $coords; // Simpan sebagai array murni
-
-                    // Mengambil data spasial riil dari OpenStreetMap Overpass API
-                    $demo = SpatialCalculationService::fetchRealDataFromOSM($coords);
+                if (is_array($geoJsonData) && isset($geoJsonData['coordinates'])) {
+                    $geojsonPolygon = $geoJsonData; // Simpan GeoJSON Geometry murni (type + coordinates)
                     
-                    $luasAreaKm2   = $demo['luas_area_km2'];
-                    $totalJiwa     = $demo['total_jiwa_terdampak'];
-                    $totalKK       = $demo['total_kk_terdampak'];
-                    $totalBangunan = $demo['total_bangunan_terdampak'];
+                    // Ambil ring pertama koordinat [lng, lat]
+                    $coords = $geoJsonData['coordinates'][0] ?? [];
+
+                    if (count($coords) >= 3) {
+                        $demo = SpatialCalculationService::fetchRealDataFromOSM($coords);
+                        
+                        $luasAreaKm2   = $demo['luas_area_km2'];
+                        $totalJiwa     = $demo['total_jiwa_terdampak'];
+                        $totalKK       = $demo['total_kk_terdampak'];
+                        $totalBangunan = $demo['total_bangunan_terdampak'];
+                    }
                 }
             }
 
-            // Estimasi Pengungsi Awal (default 35% dari total jiwa terdampak atau minimal 50)
+            // Estimasi Pengungsi Awal
             $estimasiPengungsi = $totalJiwa > 0 ? (int) round($totalJiwa * 0.35) : 50;
 
             // 3. Simpan Ke Tabel Bencana Utama
@@ -156,7 +158,7 @@ class BencanaController extends Controller
                 BencanaPending::where('id', $validated['pending_id'])->update(['status' => 'validated']);
             }
 
-            // 5. AUTO GENERATE STOK REKOMENDASI LOGISTIK KE POSKO KOMANDO
+            // 5. AUTO GENERATE STOK REKOMENDASI LOGISTIK
             $rekomendasiStok = [
                 'Beras'           => ceil($estimasiPengungsi * 0.4 * 7),
                 'Air Minum'       => ceil($estimasiPengungsi * 0.5),
@@ -257,13 +259,29 @@ class BencanaController extends Controller
      */
     public function calculateSpatial(Request $request)
     {
+        // 1. Terima payload baik dalam bentuk String JSON maupun Array
         $request->validate([
-            'coordinates' => 'required|array|min:3',
+            'geojson' => 'required',
         ]);
 
-        $coordinates = $request->coordinates;
-        
-        // Panggil Engine Overpass API Live Sensus Bangunan
+        $geoJson = $request->geojson;
+
+        // Decode jika data dikirim sebagai JSON String dari JavaScript
+        if (is_string($geoJson)) {
+            $geoJson = json_decode($geoJson, true);
+        }
+
+        // 2. Ambil ring koordinat pertama
+        $coordinates = $geoJson['coordinates'][0] ?? [];
+
+        if (!is_array($coordinates) || count($coordinates) < 3) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Koordinat poligon tidak valid.'
+            ], 422);
+        }
+
+        // 3. Panggil Engine Overpass API Live Sensus Bangunan
         $demographics = SpatialCalculationService::fetchRealDataFromOSM($coordinates);
 
         return response()->json([

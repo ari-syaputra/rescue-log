@@ -12,7 +12,7 @@ class StokInventaris extends Model
     protected $table = 'stok_inventaris';
 
     protected $fillable = [
-        'posko_id', // TAMBAHKAN KOLOM INI SANGAT PENTING
+        'posko_id',
         'nama_barang',
         'kategori',
         'jumlah',

@@ -14,6 +14,44 @@
     .leaflet-draw-toolbar {
         display: none !important;
     }
+
+    /* ========================================================== */
+    /* KUSTOMISASI STYLING VERTEX POLIGON MENJADI BULAT & MODERN  */
+    /* ========================================================== */
+    
+    /* 1. Titik Panduan & Garis Putus-putus */
+    .leaflet-draw-guide-dash {
+        border-radius: 50% !important;
+    }
+
+    /* 2. Vertex Utama saat Menggambar & Mengedit Poligon */
+    .leaflet-div-icon.leaflet-editing-icon {
+        border-radius: 50% !important;
+        background-color: #ffffff !important;
+        border: 2.5px solid #2563eb !important; /* Border Biru Modern */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+        width: 12px !important;
+        height: 12px !important;
+        margin-left: -6px !important;
+        margin-top: -6px !important;
+        transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    /* 3. Midpoint (Titik Tengah) saat Mode Edit */
+    .leaflet-div-icon.leaflet-editing-icon.leaflet-edit-move {
+        border-radius: 50% !important;
+        background-color: #3b82f6 !important;
+        border: 2px solid #ffffff !important;
+        opacity: 0.85 !important;
+    }
+
+    /* 4. Efek Hover pada Titik Vertex saat Kursor Mengarah */
+    .leaflet-div-icon.leaflet-editing-icon:hover {
+        transform: scale(1.3);
+        background-color: #eff6ff !important;
+        border-color: #1d4ed8 !important;
+        cursor: pointer;
+    }
 </style>
 @endpush
 
@@ -159,16 +197,16 @@
                         </div>
                     </div>
 
-<div>
-    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 cursor-pointer">
-        Dokumen SK Status Darurat (PDF/Gambar) <span class="text-rose-500">*</span>
-    </label>
-    <input type="file" name="sk_status_darurat" required accept=".pdf,.jpg,.jpeg,.png" 
-        class="w-full text-xs text-slate-500 border border-slate-200 rounded-xl file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer bg-slate-50/50 p-1.5 cursor-pointer">
-    @error('sk_status_darurat')
-        <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
-    @enderror
-</div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 cursor-pointer">
+                            Dokumen SK Status Darurat (PDF/Gambar) <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="file" name="sk_status_darurat" required accept=".pdf,.jpg,.jpeg,.png" 
+                            class="w-full text-xs text-slate-500 border border-slate-200 rounded-xl file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer bg-slate-50/50 p-1.5 cursor-pointer">
+                        @error('sk_status_darurat')
+                            <span class="text-xs text-rose-500 mt-1.5 block font-medium">{{ $message }}</span>
+                        @enderror
+                    </div>
 
                     <!-- Textarea Catatan -->
                     <div class="flex-1 flex flex-col min-h-[100px]">
@@ -438,11 +476,15 @@
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify({ geojson: geoJsonGeometry })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP Status " + res.status);
+                return res.json();
+            })
             .then(res => {
                 if (res.status === 'success') {
                     const d = res.data;
@@ -455,7 +497,11 @@
                     document.getElementById('badgeSpatialStatus').className = "text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full";
                 }
             })
-            .catch(err => console.error("Spatial calculation error:", err));
+            .catch(err => {
+                console.error("Spatial calculation error:", err);
+                document.getElementById('badgeSpatialStatus').textContent = "⚠️ Gagal Kalkulasi Spasial";
+                document.getElementById('badgeSpatialStatus').className = "text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full";
+            });
         }
 
         function resetDemographicsCard() {

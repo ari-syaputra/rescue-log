@@ -8,11 +8,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Jalankan PoskoSeeder terlebih dahulu baru UserSeeder
+        // PENTING: UserSeeder HARUS dijalankan sebelum PoskoSeeder!
         $this->call([
             BencanaSeeder::class,
-            PoskoSeeder::class,
             UserSeeder::class,
+            PoskoSeeder::class,
             ArmadaSeeder::class,
             StokInventarisSeeder::class,
         ]);

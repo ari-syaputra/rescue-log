@@ -18,10 +18,10 @@ class DashboardLapanganController extends Controller
     {
         $user = Auth::user();
 
-        // 1. Ambil data Posko beserta relasi Bencana secara Eager Loading
+        // 1. Ambil data Posko beserta relasi Bencana & Fotos secara Eager Loading
         $subPosko = null;
         if ($user->posko_id) {
-            $subPosko = Posko::with('bencana')->find($user->posko_id);
+            $subPosko = Posko::with(['bencana', 'fotos'])->find($user->posko_id);
         }
 
         if (!$subPosko) {

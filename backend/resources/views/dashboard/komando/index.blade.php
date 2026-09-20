@@ -52,13 +52,105 @@
         <div class="lg:col-span-8 flex flex-col h-full">
             <x-dashboard.map-gis />
         </div>
-        <div class="lg:col-span-4">
-            <x-dashboard.sos-feed />
+        <div class="lg:col-span-4 space-y-4">
+            
+            <!-- EMERGENCY FEED CARD -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        Emergency Feed - SOS Medis
+                    </h3>
+                    <span class="text-[10px] font-extrabold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
+                        {{ isset($sosFeeds) ? $sosFeeds->count() : 0 }}
+                    </span>
+                </div>
+
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    @if(isset($sosFeeds) && $sosFeeds->count() > 0)
+                        @foreach($sosFeeds as $sos)
+                            <div class="p-3 bg-rose-50/60 border border-rose-100 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-bold text-rose-900">{{ $sos->nama_pasien ?? 'Panggilan Darurat' }}</h4>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">{{ $sos->lokasi_penjemputan ?? 'Lokasi Terdampak' }}</p>
+                                </div>
+                                <span class="text-[10px] font-bold text-rose-600 bg-white px-2 py-1 rounded-lg shadow-2xs">
+                                    DARURAT
+                                </span>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="py-6 text-center text-slate-400 text-xs font-medium">
+                            Sistem kondusif. Tidak ada panggilan SOS medis aktif.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- PERMINTAAN LOGISTIK MASUK CARD -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                        <x-heroicon-o-inbox-arrow-down class="w-4 h-4 text-indigo-600" />
+                        Permintaan Logistik Masuk
+                    </h3>
+                    <span class="text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                        {{ isset($permintaanList) ? $permintaanList->count() : 0 }}
+                    </span>
+                </div>
+
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    @if(isset($permintaanList) && $permintaanList->count() > 0)
+                        @foreach($permintaanList as $req)
+                            <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-800">{{ $req->posko->nama_posko ?? 'Sub-Posko' }}</h4>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">{{ $req->created_at ? $req->created_at->diffForHumans() : '-' }}</p>
+                                </div>
+                                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                    Menunggu
+                                </span>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="py-6 text-center text-slate-400 text-xs font-medium">
+                            Tidak ada permintaan logistik masuk dari Sub-Posko.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
         </div>
     </div>
 
     <!-- Machine Learning Analytics Section -->
-    <x-dashboard.ml-analytics />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                    <x-heroicon-o-chart-bar class="w-4 h-4 text-emerald-600" />
+                    Tren Stok Real-time
+                </h3>
+                <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">7 Hari Terakhir</span>
+            </div>
+            <div class="h-44 relative">
+                <canvas id="chartTrenStokRealtime"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                    <x-heroicon-o-arrow-trending-up class="w-4 h-4 text-blue-600" />
+                    Riwayat Penyaluran Real-time
+                </h3>
+                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Live Data</span>
+            </div>
+            <div class="h-44 relative">
+                <canvas id="chartRiwayatPenyaluranRealtime"></canvas>
+            </div>
+        </div>
+    </div>
 
     <!-- Pintasan Menu Utama -->
     <x-dashboard.quick-menu />
@@ -83,7 +175,7 @@
     const bencanaAktif = @json($bencana ?? null);
     const subPoskoList = @json($totalPoskoList ?? []);
 
-    // Tentukan Pusat Peta (Prioritas: Posko Komando -> BPBD Induk -> Fallback Bantul)
+    // Peta Dinamis (Prioritas: Posko Komando -> BPBD Induk -> Default Bantul)
     const defaultLat = currentPosko && currentPosko.latitude ? parseFloat(currentPosko.latitude) : (bpbdInduk && bpbdInduk.latitude ? parseFloat(bpbdInduk.latitude) : -7.8893);
     const defaultLng = currentPosko && currentPosko.longitude ? parseFloat(currentPosko.longitude) : (bpbdInduk && bpbdInduk.longitude ? parseFloat(bpbdInduk.longitude) : 110.3288);
 
@@ -99,9 +191,7 @@
 
         setTimeout(() => { mainMap.invalidateSize(); }, 300);
 
-        // ==========================================
-        // A. LAYER BPBD KABUPATEN (Gudang Induk)
-        // ==========================================
+        // A. BPBD INDUK
         if (bpbdInduk && bpbdInduk.latitude && bpbdInduk.longitude) {
             const bpbdIcon = L.divIcon({
                 className: 'custom-bpbd-icon',
@@ -115,9 +205,7 @@
                 .bindPopup(`<b>🏛️ ${bpbdInduk.nama_kabupaten_kota || 'BPBD Induk'}</b><br><small>${bpbdInduk.alamat_kantor || ''}</small>`);
         }
 
-        // ==========================================
-        // B. LAYER POSKO KOMANDO UTAMA (Posko Saya)
-        // ==========================================
+        // B. POSKO KOMANDO UTAMA
         if (currentPosko && currentPosko.latitude && currentPosko.longitude) {
             const komandoIcon = L.divIcon({
                 className: 'custom-komando-icon',
@@ -131,9 +219,7 @@
                 .bindPopup(`<b>🏢 ${currentPosko.nama_posko} (Posko Komando Utama)</b><br>PJ: ${currentPosko.penanggung_jawab}<br>Status: AKTIF OPERASI`);
         }
 
-        // ==========================================
-        // C. LAYER SUB-POSKO LAPANGAN (HIJAU)
-        // ==========================================
+        // C. SUB-POSKO LAPANGAN
         let subPoskoLayerGroup = L.layerGroup().addTo(mainMap);
 
         const subIcon = L.divIcon({
@@ -153,9 +239,7 @@
             }
         });
 
-        // ==========================================
-        // D. LAYER BENCANA (TITIK MERAH + POLIGON GEOJSON)
-        // ==========================================
+        // D. LAYER BENCANA ZONA MERAH
         let hazardLayerGroup = L.layerGroup().addTo(mainMap);
 
         if (bencanaAktif && bencanaAktif.koordinat_operasional_lat && bencanaAktif.koordinat_operasional_lng) {
@@ -173,7 +257,6 @@
                 .addTo(hazardLayerGroup)
                 .bindPopup(`<b>⚠️ [Bencana] ${bencanaAktif.jenis_bencana}</b><br>Lokasi: ${bencanaAktif.lokasi_bencana}`);
 
-            // Render Poligon GeoJSON Area Terdampak
             let polygonData = bencanaAktif.geojson_polygon;
             if (typeof polygonData === 'string') {
                 try { polygonData = JSON.parse(polygonData); } catch (e) {}
@@ -194,20 +277,12 @@
             }
         }
 
-        // Toggle Layer Checkbox Control (Jika Elemen Checkbox Ada)
-        document.getElementById('chkHazard')?.addEventListener('change', (e) => {
-            e.target.checked ? mainMap.addLayer(hazardLayerGroup) : mainMap.removeLayer(hazardLayerGroup);
-        });
-        document.getElementById('chkPosko')?.addEventListener('change', (e) => {
-            e.target.checked ? mainMap.addLayer(subPoskoLayerGroup) : mainMap.removeLayer(subPoskoLayerGroup);
-        });
+        // --- 2. CHART.JS DATA DINAMIS DARI CONTROLLER ---
+        const labelsRealtime = @json($chartLabels ?? []);
+        const dataStokRealtime = @json($chartStokData ?? []);
+        const dataDistribusiRealtime = @json($chartDistribusiData ?? []);
 
-        // --- 2. CHART.JS REAL-TIME ---
-        const labelsTanggalJam = ['10 Sep 08:00', '11 Sep 10:30', '12 Sep 14:15', '13 Sep 09:00', '14 Sep 16:45', '15 Sep 11:20', '16 Sep 08:00'];
-
-        const elChartStok = document.getElementById('chartTrenStokRealtime') || document.getElementById('chartTrenLogistikML');
-        const ctxStok = elChartStok?.getContext('2d');
-        
+        const ctxStok = document.getElementById('chartTrenStokRealtime')?.getContext('2d');
         if (ctxStok) {
             const gradientEmerald = ctxStok.createLinearGradient(0, 0, 0, 200);
             gradientEmerald.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
@@ -216,10 +291,10 @@
             new Chart(ctxStok, {
                 type: 'line',
                 data: {
-                    labels: labelsTanggalJam,
+                    labels: labelsRealtime,
                     datasets: [{
                         label: 'Total Stok Posko',
-                        data: [12850, 12720, 12600, 12540, 12410, 12320, 12285],
+                        data: dataStokRealtime,
                         borderColor: '#10b981',
                         borderWidth: 2.5,
                         fill: true,
@@ -242,9 +317,7 @@
             });
         }
 
-        const elChartPenyaluran = document.getElementById('chartRiwayatPenyaluranRealtime') || document.getElementById('chartDistribusiML');
-        const ctxPenyaluran = elChartPenyaluran?.getContext('2d');
-        
+        const ctxPenyaluran = document.getElementById('chartRiwayatPenyaluranRealtime')?.getContext('2d');
         if (ctxPenyaluran) {
             const gradientBlue = ctxPenyaluran.createLinearGradient(0, 0, 0, 200);
             gradientBlue.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
@@ -253,10 +326,10 @@
             new Chart(ctxPenyaluran, {
                 type: 'line',
                 data: {
-                    labels: labelsTanggalJam,
+                    labels: labelsRealtime,
                     datasets: [{
                         label: 'Logistik Disalurkan',
-                        data: [130, 120, 60, 130, 90, 35, 40],
+                        data: dataDistribusiRealtime,
                         borderColor: '#2563eb',
                         borderWidth: 2.5,
                         fill: true,

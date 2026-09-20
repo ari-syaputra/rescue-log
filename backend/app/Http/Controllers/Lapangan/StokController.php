@@ -17,8 +17,9 @@ class StokController extends Controller
     {
         $user = Auth::user();
 
-        // 1. Ambil Pengajuan Logistik Sub-Posko ini
-        $pengajuans = PengajuanKebutuhan::where(function ($q) use ($user) {
+        // 1. Ambil Seluruh Pengajuan Logistik Sub-Posko ini (Termasuk Status 'pending', 'proses', 'disetujui', dll)
+        $pengajuans = PengajuanKebutuhan::with(['pengiriman'])
+            ->where(function ($q) use ($user) {
                 if (!empty($user->posko_id) && Schema::hasColumn('pengajuan_kebutuhan', 'posko_id')) {
                     $q->where('posko_id', $user->posko_id);
                 } else {
@@ -42,7 +43,7 @@ class StokController extends Controller
 
         $pengirimans = $pengirimansQuery->latest()->get();
 
-        // 3. Ambil Stok HANYA milik Posko ini dan Di-grouping agar 100% Tidak Ada Baris Duplikat
+        // 3. Ambil Stok HANYA milik Posko ini
         $stoks = collect();
         if (!empty($user->posko_id)) {
             $stoks = StokInventaris::where('posko_id', $user->posko_id)

@@ -43,7 +43,6 @@
 
             // Marker & Poligon Bencana Aktif (Merah)
             const activeData = @json($activeDisasters ?? []);
-            // Pada bagian Loop Bencana Aktif:
             activeData.forEach(item => {
                 const lat = parseFloat(item.koordinat_operasional_lat);
                 const lng = parseFloat(item.koordinat_operasional_lng);
@@ -63,10 +62,10 @@
 
                     boundsGroup.push([lat, lng]);
 
-                    // B. Render Poligon Area Terdampak (Parsing Ganda Aman String/Array)
+                    // B. Render Poligon Area Terdampak (Robust Parser)
                     let polygonData = item.geojson_polygon;
                     
-                    // Melakukan JSON.parse berulang jika data terbungkus sebagai string JSON
+                    // Decode jika terbungkus string JSON berulang
                     while (typeof polygonData === 'string') {
                         try { 
                             polygonData = JSON.parse(polygonData); 
@@ -75,27 +74,58 @@
                         }
                     }
 
-                    if (Array.isArray(polygonData) && polygonData.length >= 3) {
-                        // Konversi format [{lat: x, lng: y}] atau [[lat, lng]] secara otomatis
-                        const polygonLatLngs = polygonData.map(pt => {
-                            if (Array.isArray(pt)) return [parseFloat(pt[0]), parseFloat(pt[1])];
-                            return [parseFloat(pt.lat), parseFloat(pt.lng)];
-                        });
+                    if (polygonData) {
+                        let rawCoords = [];
 
-                        L.polygon(polygonLatLngs, {
-                            color: '#dc2626',       // Red-600 (Garis tepi)
-                            weight: 2,               // Ketebalan garis
-                            fillColor: '#ef4444',    // Red-500 (Warna Isian)
-                            fillOpacity: 0.35,       // Transparansi poligon
-                            dashArray: '5, 5',       // Garis putus-putus
-                            stroke: true
-                        }).bindTooltip(`Perkiraan Zona Terdampak: ${item.jenis_bencana}`, {
-                            sticky: true,
-                            className: 'text-xs font-bold border-0 shadow-md'
-                        }).addTo(map);
+                        // Deteksi struktur GeoJSON / Geometry Object
+                        if (typeof polygonData === 'object' && !Array.isArray(polygonData) && polygonData.coordinates) {
+                            rawCoords = polygonData.coordinates;
+                        } else if (Array.isArray(polygonData)) {
+                            rawCoords = polygonData;
+                        }
 
-                        // Masukkan titik poligon ke bounds grup agar ter-fitBounds dengan pas
-                        polygonLatLngs.forEach(pt => boundsGroup.push(pt));
+                        // Un-nest ganda (Membongkar array bertingkat hingga menemukan array titik koordinat)
+                        while (Array.isArray(rawCoords) && rawCoords.length === 1 && Array.isArray(rawCoords[0]) && typeof rawCoords[0][0] !== 'number') {
+                            rawCoords = rawCoords[0];
+                        }
+
+                        if (Array.isArray(rawCoords) && rawCoords.length >= 3) {
+                            const polygonLatLngs = rawCoords.map(pt => {
+                                let ptLat, ptLng;
+                                
+                                if (Array.isArray(pt)) {
+                                    // Deteksi otomatis urutan [lng, lat] (GeoJSON) vs [lat, lng] (Leaflet)
+                                    if (Math.abs(parseFloat(pt[0])) > Math.abs(parseFloat(pt[1]))) {
+                                        ptLng = parseFloat(pt[0]);
+                                        ptLat = parseFloat(pt[1]);
+                                    } else {
+                                        ptLat = parseFloat(pt[0]);
+                                        ptLng = parseFloat(pt[1]);
+                                    }
+                                } else if (typeof pt === 'object' && pt !== null) {
+                                    ptLat = parseFloat(pt.lat ?? pt.latitude);
+                                    ptLng = parseFloat(pt.lng ?? pt.longitude);
+                                }
+
+                                return [ptLat, ptLng];
+                            }).filter(pt => !isNaN(pt[0]) && !isNaN(pt[1]));
+
+                            if (polygonLatLngs.length >= 3) {
+                                L.polygon(polygonLatLngs, {
+                                    color: '#dc2626',       // Garis Merah (Red-600)
+                                    weight: 2,               
+                                    fillColor: '#ef4444',    // Isian Merah (Red-500)
+                                    fillOpacity: 0.35,       
+                                    dashArray: '5, 5',       
+                                    stroke: true
+                                }).bindTooltip(`Perkiraan Zona Terdampak: ${item.jenis_bencana}`, {
+                                    sticky: true,
+                                    className: 'text-xs font-bold border-0 shadow-md'
+                                }).addTo(map);
+
+                                polygonLatLngs.forEach(pt => boundsGroup.push(pt));
+                            }
+                        }
                     }
                 }
             });
@@ -119,7 +149,7 @@
                         icon: 'warning',
                         title: 'Form Belum Lengkap',
                         text: 'Mohon isi estimasi jumlah pengungsi awal dan unggah berkas SK Status Darurat!',
-                        confirmButtonColor: '#1d4ed8', // Blue 700
+                        confirmButtonColor: '#1d4ed8',
                         customClass: { 
                             popup: 'rounded-3xl font-sans p-6'
                         }
@@ -127,7 +157,6 @@
                     return false;
                 }
 
-                // Tampilkan SweetAlert Loading
                 Swal.fire({
                     title: 'Memproses Validasi TRC...',
                     text: 'Menyiapkan rekomendasi buffer stok otomatis & mengalokasikan Posko Komando.',
@@ -143,83 +172,15 @@
         }
     });
 
-    // 3. Fungsi Membuka Modal Validasi & Action URL Dinamis
-    function openModalValidasi(buttonElement) {
-        let data = null;
-
-        if (buttonElement && buttonElement.dataset && buttonElement.dataset.pending) {
-            try {
-                data = typeof buttonElement.dataset.pending === 'string'
-                    ? JSON.parse(buttonElement.dataset.pending)
-                    : buttonElement.dataset.pending;
-            } catch (e) {
-                console.error("Gagal parse dataset pending:", e);
-            }
-        } else if (typeof buttonElement === 'object') {
-            data = buttonElement;
-        }
-
-        if (!data || !data.id) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Data Tidak Ditemukan',
-                text: 'ID bencana pending tidak valid.',
-                confirmButtonColor: '#ef4444',
-                customClass: {
-                    popup: 'rounded-3xl font-sans'
-                }
-            });
-            return;
-        }
-
-        const formValidasi = document.getElementById('formValidasi');
-        const modalValidasi = document.getElementById('modalValidasi');
-
-        if (formValidasi && modalValidasi) {
-            formValidasi.action = `/admin/bencana/${data.id}/approve`;
-
-            // Reset Input Form
-            document.getElementById('input_estimasi_pengungsi').value = '';
-            document.getElementById('input_sk_darurat').value = '';
-
-            // Render Data ke Modal UI
-            const isManual = String(data.external_id || '').startsWith('MANUAL-');
-
-            if (document.getElementById('valJenis')) document.getElementById('valJenis').innerText = data.jenis_bencana || '-';
-            if (document.getElementById('valJenisBadge')) {
-                const badge = document.getElementById('valJenisBadge');
-                badge.innerText = isManual ? '📝 MANUAL TRC' : '🛰️ BMKG AUTO';
-                badge.className = isManual 
-                    ? 'px-2.5 py-0.5 font-bold bg-indigo-100 text-indigo-900 rounded-md uppercase text-xs' 
-                    : 'px-2.5 py-0.5 font-bold bg-amber-100 text-amber-800 rounded-md uppercase text-xs';
-            }
-            if (document.getElementById('valWilayah')) document.getElementById('valWilayah').innerText = data.wilayah || data.lokasi || '-';
-            if (document.getElementById('valLat')) document.getElementById('valLat').innerText = data.latitude || data.koordinat_lat || '-';
-            if (document.getElementById('valLng')) document.getElementById('valLng').innerText = data.longitude || data.koordinat_lng || '-';
-            if (document.getElementById('valWaktu')) document.getElementById('valWaktu').innerText = data.waktu_kejadian || '-';
-
-            // Tampilkan Modal
-            modalValidasi.classList.remove('hidden');
-        }
-    }
-
-    // 4. Menutup Modal
-    function closeModal() {
-        const modalValidasi = document.getElementById('modalValidasi');
-        if (modalValidasi) {
-            modalValidasi.classList.add('hidden');
-        }
-    }
-
-    // 5. Konfirmasi Abaikan / Reject Bencana Pending
+    // 3. Konfirmasi Abaikan / Reject Bencana Pending
     function konfirmasiAbaikan(id) {
         Swal.fire({
             title: 'Abaikan Deteksi Bencana?',
             text: "Data insiden ini akan diabaikan dan tidak masuk ke log operasi.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#1d4ed8', // Blue 700
-            cancelButtonColor: '#cbd5e1',  // Slate 300
+            confirmButtonColor: '#1d4ed8',
+            cancelButtonColor: '#cbd5e1',
             confirmButtonText: 'Ya, Abaikan',
             cancelButtonText: 'Batal',
             reverseButtons: true,
@@ -239,15 +200,15 @@
         });
     }
 
-    // 6. Konfirmasi Selesai Operasi Bencana
+    // 4. Konfirmasi Selesai Operasi Bencana
     function konfirmasiSelesaiOperasi(bencanaId, namaBencana) {
         Swal.fire({
             title: 'Selesaikan Operasi Bencana?',
             html: `Apakah Anda yakin ingin menyelesaikan operasi tanggap darurat <b>(${namaBencana})</b>?<br><br><span class="text-xs text-slate-500">Seluruh Posko terkait akan diubah ke status Standby/Ditutup.</span>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#1d4ed8', // Blue 700
-            cancelButtonColor: '#cbd5e1',  // Slate 300
+            confirmButtonColor: '#1d4ed8',
+            cancelButtonColor: '#cbd5e1',
             confirmButtonText: 'Ya, Selesaikan!',
             cancelButtonText: 'Batal',
             reverseButtons: true,

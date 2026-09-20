@@ -14,7 +14,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',  
+        'role', // bnpb, bpbd_provinsi, admin (bpbd_kabkota), komando, lapangan
         'posko_id',
         'bpbd_id',
     ];
@@ -32,8 +32,33 @@ class User extends Authenticatable
         ];
     }
 
-    // Relasi: User/Petugas berada di 1 Posko
-    // Di dalam class User
+    // Helper Roles Checking
+    public function isBnpb(): bool
+    {
+        return in_array($this->role, ['bnpb', 'pusat']);
+    }
+
+    public function isProvinsi(): bool
+    {
+        return in_array($this->role, ['bpbd_provinsi', 'provinsi']);
+    }
+
+    public function isAdminKabkota(): bool
+    {
+        return in_array($this->role, ['admin', 'bpbd', 'bpbd_kabkota']);
+    }
+
+    public function isKomando(): bool
+    {
+        return in_array($this->role, ['komando', 'koordinator_komando', 'posko_komando']);
+    }
+
+    public function isLapangan(): bool
+    {
+        return in_array($this->role, ['lapangan', 'sub_posko', 'petugas_lapangan']);
+    }
+
+    // Relasi
     public function posko()
     {
         return $this->belongsTo(Posko::class, 'posko_id');
@@ -41,6 +66,6 @@ class User extends Authenticatable
 
     public function bpbd()
     {
-        return $this->belongsTo(Bpbd::class);
+        return $this->belongsTo(Bpbd::class, 'bpbd_id');
     }
 }

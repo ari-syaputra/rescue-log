@@ -12,11 +12,8 @@ class PengungsiController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        // Ambil posko_id dari user yang sedang login
         $poskoId = $user->posko_id;
 
-        // Query berdasarkan posko_id
         $pendataan_terakhir = Pendataan::where('posko_id', $poskoId)
             ->latest()
             ->first();
@@ -34,11 +31,26 @@ class PengungsiController extends Controller
         ));
     }
 
+    public function create()
+    {
+        $user = Auth::user();
+        $poskoId = $user->posko_id;
+
+        // Ambil data pendataan terakhir untuk auto-fill bawaan jika ada
+        $pendataan_terakhir = Pendataan::where('posko_id', $poskoId)
+            ->latest()
+            ->first();
+
+        // Ambil data posko untuk lat/lon cuaca
+        $posko = $user->posko; 
+
+        return view('dashboard.lapangan.pengungsi.create', compact('pendataan_terakhir', 'posko'));
+    }
+
     public function store(Request $request)
     {
         $user = Auth::user();
 
-        // Validasi seluruh inputan dari Modal Pendataan
         $validated = $request->validate([
             'total_pengungsi'  => 'required|integer|min:0',
             'balita'           => 'required|integer|min:0',
@@ -55,10 +67,8 @@ class PengungsiController extends Controller
             'catatan'          => 'nullable|string',
         ]);
 
-        // Masukkan posko_id milik user yang sedang login
         $validated['posko_id'] = $user->posko_id;
 
-        // Validasi pengaman jika akun lapangan belum terikat posko
         if (!$validated['posko_id']) {
             if ($request->expectsJson()) {
                 return response()->json(['status' => 'error', 'message' => 'Akun lapangan belum terikat ke Posko manapun.'], 422);
@@ -66,10 +76,8 @@ class PengungsiController extends Controller
             return redirect()->back()->with('error', 'Gagal: Akun lapangan Anda belum terikat ke Posko manapun.');
         }
 
-        // Simpan data pendataan baru ke database
         $pendataan = Pendataan::create($validated);
 
-        // Jika request berasal dari sinkronisasi latar belakang offline (AJAX/JSON)
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'success',
@@ -78,7 +86,6 @@ class PengungsiController extends Controller
             ]);
         }
 
-        // REDIRECT LANGSUNG KE HALAMAN PENGAJUAN LOGISTIK
         return redirect()->route('lapangan.pengajuan.index')
             ->with('success', 'Data pengungsi berhasil diperbarui! Hasil kalkulasi rekomendasi logistik AI telah disesuaikan.');
     }

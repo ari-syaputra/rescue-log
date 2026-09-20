@@ -6,28 +6,32 @@
         </a>
     </div>
 
+    @php
+        $listLogs = $logs ?? [];
+    @endphp
+
     <div class="space-y-2.5">
-        @forelse($logs ?? [] as $log)
+        @forelse($listLogs as $log)
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl {{ $log->bg_icon }} flex items-center justify-center shrink-0">
-                        @if($log->tipe === 'distribusi')
+                    <div class="w-9 h-9 rounded-xl {{ $log->bg_icon ?? 'bg-blue-50 text-blue-600' }} flex items-center justify-center shrink-0">
+                        @if(($log->tipe ?? '') === 'distribusi')
                             <x-heroicon-s-arrow-path-rounded-square class="w-5 h-5" />
                         @else
                             <x-heroicon-s-document-text class="w-5 h-5" />
                         @endif
                     </div>
                     <div>
-                        <p class="font-bold text-slate-800">{{ $log->judul }}</p>
-                        <p class="text-[11px] text-slate-500">{{ $log->deskripsi }}</p>
+                        <p class="font-bold text-slate-800">{{ $log->judul ?? 'Aktivitas System' }}</p>
+                        <p class="text-[11px] text-slate-500">{{ $log->deskripsi ?? 'Aktivitas operasional baru' }}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3 self-end sm:self-center">
                     <span class="text-[11px] text-slate-400">
-                        {{ \Carbon\Carbon::parse($log->waktu)->diffForHumans() }}
+                        {{ isset($log->waktu) ? \Carbon\Carbon::parse($log->waktu)->diffForHumans() : '-' }}
                     </span>
-                    <span class="px-2.5 py-1 {{ $log->bg_status }} font-bold text-[10px] rounded-lg">
-                        {{ $log->status_text }}
+                    <span class="px-2.5 py-1 {{ $log->bg_status ?? 'bg-slate-100 text-slate-600' }} font-bold text-[10px] rounded-lg">
+                        {{ $log->status_text ?? 'Selesai' }}
                     </span>
                 </div>
             </div>

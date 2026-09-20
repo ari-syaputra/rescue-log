@@ -5,22 +5,46 @@
 @section('content')
     <div class="w-full space-y-6 font-sans">
 
-        <!-- Top Header Navigation & Network Indicator -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <!-- 1. TAMPILAN HEADER KHUSUS MOBILE (DILIHAT DI SMARTPHONE) -->
+        <div class="flex flex-col gap-3 mb-4 sm:hidden">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                    <!-- Tombol Kembali Bulat Ringkas -->
+                    <a href="{{ route('lapangan.dashboard') }}"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-600 transition shadow-2xs shrink-0 cursor-pointer">
+                        <x-heroicon-s-arrow-left class="w-4 h-4" />
+                    </a>
+
+                    <div>
+                        <h1 class="text-base font-bold text-slate-900 leading-tight">Pengajuan Logistik</h1>
+                        <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-1">Kalkulasi rekomendasi AI berdasarkan data pengungsi.</p>
+                    </div>
+                </div>
+
+                <!-- Tombol Perbarui Data Ramping -->
+                <a href="{{ route('lapangan.pengungsi.index') }}"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer">
+                    <x-heroicon-s-arrow-path class="w-3.5 h-3.5 text-white" />
+                    <span>Perbarui</span>
+                </a>
+            </div>
+
+            <!-- BANNER DRAF OFFLINE MOBILE -->
+            <div id="offlineSyncBannerMobile" class="hidden items-center justify-between px-3 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold">
+                <span>🔄 <span id="offlineQueueCountMobile">0</span> Draf Offline</span>
+            </div>
+        </div>
+
+
+        <!-- 2. TAMPILAN HEADER KHUSUS DESKTOP & TABLET (DESKTOP LENGKAP) -->
+        <div class="hidden sm:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="flex items-center gap-3">
                 <a href="{{ route('lapangan.dashboard') }}"
-                    class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition shadow-xs shrink-0">
+                    class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition shadow-xs shrink-0 cursor-pointer">
                     <x-heroicon-s-arrow-left class="w-5 h-5 text-slate-600" />
                 </a>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Pengajuan Kebutuhan Logistik</h1>
-                        <!-- BADGE INDIKATOR STATUS KONEKSI LAPANGAN -->
-                        <span id="badgeNetworkStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            <span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Online
-                        </span>
-                    </div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Pengajuan Kebutuhan Logistik</h1>
                     <p class="text-sm text-slate-500 mt-0.5 leading-relaxed">
                         Angka kebutuhan di bawah dikalkulasi otomatis oleh Machine Learning AI berdasarkan data pengungsi, kategori usia, dan kondisi cuaca terkini.
                     </p>
@@ -508,6 +532,30 @@
                     }
                 });
             }
+        }
+
+        // Sesuaikan fungsi update badge offline queue di JS
+        async function updateOfflineQueueBadge() {
+            const queue = await localforage.getItem('subposko_pengajuan_queue') || [];
+            const count = queue.length;
+
+            ['offlineQueueCount', 'offlineQueueCountMobile'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = count;
+            });
+
+            ['offlineSyncBanner', 'offlineSyncBannerMobile'].forEach(id => {
+                const banner = document.getElementById(id);
+                if (banner) {
+                    if (count > 0) {
+                        banner.classList.remove('hidden');
+                        banner.classList.add('flex');
+                    } else {
+                        banner.classList.add('hidden');
+                        banner.classList.remove('flex');
+                    }
+                }
+            });
         }
     </script>
 @endpush

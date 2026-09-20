@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Bnpb;
+use App\Http\Controllers\Provinsi;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Komando;
 use App\Http\Controllers\Lapangan;
@@ -17,6 +19,8 @@ use App\Http\Controllers\PredictionController;
 Route::get('/', function () {
     if (Auth::check()) {
         return match (Auth::user()->role) {
+            'bnpb', 'pusat' => redirect()->route('bnpb.dashboard'),
+            'bpbd_provinsi', 'provinsi' => redirect()->route('provinsi.dashboard'),
             'admin', 'bpbd', 'bpbd_kabkota' => redirect()->route('admin.dashboard'),
             'komando', 'koordinator_komando', 'posko_komando' => redirect()->route('komando.dashboard'),
             'lapangan' => redirect()->route('lapangan.dashboard'),
@@ -45,7 +49,22 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // ============ ADMIN (BPBD KAB/KOTA) ============
+    // ============ 1. BNPB (PUSAT / NASIONAL) ============
+    Route::middleware('role:bnpb,pusat')->prefix('bnpb')->name('bnpb.')->group(function () {
+        Route::get('/dashboard', [Bnpb\BnpbDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/monitoring', [Bnpb\BnpbDashboardController::class, 'monitoring'])->name('monitoring');
+        Route::post('/eskalasi/{id}/approve', [Bnpb\BnpbDashboardController::class, 'approveEskalasi'])->name('eskalasi.approve');
+    });
+
+    // ============ 2. BPBD PROVINSI ============
+    Route::middleware('role:bpbd_provinsi,provinsi')->prefix('provinsi')->name('provinsi.')->group(function () {
+        Route::get('/dashboard', [Provinsi\ProvinsiDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/eskalasi', [Provinsi\ProvinsiEskalasiController::class, 'index'])->name('eskalasi.index');
+        Route::post('/eskalasi/{id}/approve', [Provinsi\ProvinsiEskalasiController::class, 'approve'])->name('eskalasi.approve');
+        Route::post('/eskalasi/{id}/bnpb', [Provinsi\ProvinsiEskalasiController::class, 'teruskanKeBnpb'])->name('eskalasi.bnpb');
+    });
+
+    // ============ 3. ADMIN (BPBD KAB/KOTA) ============
     Route::middleware('role:admin,bpbd,bpbd_kabkota')->prefix('admin')->name('admin.')->group(function () {
         
         // Dashboard Admin
@@ -81,12 +100,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/distribusi', [Admin\DistribusiController::class, 'index'])->name('distribusi.index');
         Route::post('/distribusi/approve/{id}', [Admin\DistribusiController::class, 'approve'])->name('distribusi.approve');
         Route::post('/distribusi/eskalasi/{id}', [Admin\DistribusiController::class, 'eskalasi'])->name('distribusi.eskalasi');
-        
+
         // Laporan & Audit
         Route::get('/laporan', fn() => view('dashboard.admin.laporan.index'))->name('laporan');
     });
 
-    // ============ POSKO KOMANDO ============
+    // ============ 4. POSKO KOMANDO ============
     Route::middleware('role:komando,koordinator_komando,posko_komando')
         ->prefix('komando')
         ->name('komando.')
@@ -95,10 +114,10 @@ Route::middleware('auth')->group(function () {
             // Dashboard Komando
             Route::get('/dashboard', [Komando\DashboardController::class, 'index'])->name('dashboard');
 
-            // 1. Stok Logistik Komando (Didapat dari Suplai BPBD Kab/Kota)
+            // 1. Stok Logistik Komando
             Route::get('/logistik', [Komando\KomandoLogistikController::class, 'index'])->name('logistik.index');
 
-            // 2. Validasi Logistik (Verifikasi & ACC Pengajuan dari Sub-Posko Lapangan)
+            // 2. Validasi Logistik Sub-Posko Lapangan
             Route::get('/validasi', [Komando\KomandoValidasiController::class, 'index'])->name('validasi.index');
             Route::post('/validasi/{id}/approve', [Komando\KomandoValidasiController::class, 'approve'])->name('validasi.approve');
             Route::post('/validasi/{id}/reject', [Komando\KomandoValidasiController::class, 'reject'])->name('validasi.reject');
@@ -110,9 +129,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/distribusi', [Komando\KomandoDistribusiController::class, 'index'])->name('distribusi.index');
             Route::post('/distribusi', [Komando\KomandoDistribusiController::class, 'store'])->name('distribusi.store');
             Route::patch('/distribusi/{id}/status', [Komando\KomandoDistribusiController::class, 'updateStatus'])->name('distribusi.update-status');
+            
+            // Pencegahan Method Not Allowed Armada:
+            Route::get('/distribusi/armada', fn() => redirect()->route('komando.distribusi.index'));
             Route::post('/distribusi/armada', [Komando\KomandoDistribusiController::class, 'storeArmada'])->name('distribusi.armada.store');
 
-            // Pengajuan Logistik Komando ke BPBD Kab/Kota (Eskalasi Logistik)
+            // Pengajuan Logistik Komando ke BPBD Kab/Kota
             Route::resource('pengajuan', Komando\PengajuanKebutuhanController::class)->only(['index', 'store', 'destroy']);
 
             // Kelola Sub-Posko Lapangan
@@ -128,7 +150,7 @@ Route::middleware('auth')->group(function () {
             Route::patch('/kendala-jalan/{id}/toggle', [Komando\KomandoDistribusiController::class, 'toggleKendala'])->name('distribusi.kendala.toggle');
         });
 
-    // ============ SUB-POSKO LAPANGAN ============
+    // ============ 5. SUB-POSKO LAPANGAN ============
     Route::middleware('role:lapangan')->prefix('lapangan')->name('lapangan.')->group(function () {
         
         // Dashboard Lapangan

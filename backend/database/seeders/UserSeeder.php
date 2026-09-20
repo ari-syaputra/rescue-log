@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Posko;
 use App\Models\Bpbd;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -12,40 +11,78 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $bpbd = Bpbd::first();
-        $poskoKomando = Posko::where('tipe_posko', 'komando')->first();
-        
-        // Ambil posko lapangan yang baru dibuat di PoskoSeeder
-        $poskoLapangan = Posko::where('tipe_posko', 'lapangan_kecil')->first();
+        $bpbdBantul = Bpbd::where('nama_kabupaten_kota', 'Kabupaten Bantul')->first() ?? Bpbd::first();
 
-        // Admin Utama BPBD
-        User::create([
-            'name'     => 'Admin BPBD Utama',
-            'email'    => 'admin@bpbd.com',
-            'password' => Hash::make('password123'),
-            'role'     => 'admin',
-            'posko_id' => null,
-            'bpbd_id'  => $bpbd?->id,
-        ]);
+        // 1. BNPB Pusat (Role: bnpb)
+        User::updateOrCreate(
+            ['email' => 'bnpb@rescuelog.id'],
+            [
+                'name'     => 'Pusdalops BNPB Indonesia',
+                'password' => Hash::make('password123'),
+                'role'     => 'bnpb',
+                'posko_id' => null,
+                'bpbd_id'  => null,
+            ]
+        );
 
-        // Koordinator Komando Utama
-        User::create([
-            'name'     => 'Koordinator Komando',
-            'email'    => 'komando@rescuelog.com',
-            'password' => Hash::make('password123'),
-            'role'     => 'komando',
-            'posko_id' => $poskoKomando?->id,
-            'bpbd_id'  => $bpbd?->id,
-        ]);
+        // 2. BPBD Provinsi D.I. Yogyakarta (Role: bpbd_provinsi)
+        User::updateOrCreate(
+            ['email' => 'bpbd.diy@rescuelog.id'],
+            [
+                'name'     => 'BPBD Provinsi D.I. Yogyakarta',
+                'password' => Hash::make('password123'),
+                'role'     => 'bpbd_provinsi',
+                'posko_id' => null,
+                'bpbd_id'  => null,
+            ]
+        );
 
-        // Petugas Lapangan A (Dihubungkan ke posko_id lapangan)
-        User::create([
-            'name'     => 'Petugas Lapangan A',
-            'email'    => 'petugas@rescuelog.com',
-            'password' => Hash::make('password123'),
-            'role'     => 'lapangan',
-            'posko_id' => $poskoLapangan?->id,
-            'bpbd_id'  => $bpbd?->id,
-        ]);
+        // 3. Admin BPBD Kabupaten Bantul (Role: admin)
+        User::updateOrCreate(
+            ['email' => 'admin@bpbd.com'],
+            [
+                'name'     => 'Admin BPBD Bantul Utama',
+                'password' => Hash::make('password123'),
+                'role'     => 'admin',
+                'posko_id' => null,
+                'bpbd_id'  => $bpbdBantul?->id,
+            ]
+        );
+
+        // 4. Komandan Posko Komando (Role: komando)
+        User::updateOrCreate(
+            ['email' => 'komando.bantul@rescuelog.id'],
+            [
+                'name'     => 'Komandan Budi Santoso',
+                'password' => Hash::make('password123'),
+                'role'     => 'komando',
+                'posko_id' => null,
+                'bpbd_id'  => $bpbdBantul?->id,
+            ]
+        );
+
+        // 5. Petugas Lapangan Sub-Posko 1 (Role: lapangan)
+        User::updateOrCreate(
+            ['email' => 'petugas.lapangan@rescuelog.id'],
+            [
+                'name'     => 'Petugas Lapangan A',
+                'password' => Hash::make('password123'),
+                'role'     => 'lapangan',
+                'posko_id' => null,
+                'bpbd_id'  => $bpbdBantul?->id,
+            ]
+        );
+
+        // 6. Petugas Lapangan Sub-Posko 2 (Role: lapangan)
+        User::updateOrCreate(
+            ['email' => 'petugas.depok@rescuelog.id'],
+            [
+                'name'     => 'Petugas Lapangan B',
+                'password' => Hash::make('password123'),
+                'role'     => 'lapangan',
+                'posko_id' => null,
+                'bpbd_id'  => $bpbdBantul?->id,
+            ]
+        );
     }
 }

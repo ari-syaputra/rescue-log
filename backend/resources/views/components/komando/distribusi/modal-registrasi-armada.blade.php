@@ -26,13 +26,29 @@
         <!-- FORM BODY -->
         <form action="{{ route('komando.distribusi.armada.store') }}" method="POST" class="p-6 sm:p-8 space-y-5">
             @csrf
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Nama / Jenis Kendaraan <span class="text-rose-500">*</span>
-                </label>
-                <input type="text" name="nama_armada" required
-                    placeholder="Cth: Ambulans Gawat Darurat 01 / Truk TNI AD"
-                    class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Nama Unit Armada <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" name="nama_armada" required
+                        placeholder="Cth: Ambulans Gawat Darurat 01"
+                        class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Jenis Kendaraan <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="jenis_armada" required
+                        class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
+                        <option value="">-- Pilih Jenis --</option>
+                        <option value="Truk Pangan / Logistik">Truk Pangan / Logistik</option>
+                        <option value="Ambulans Medis">Ambulans Medis</option>
+                        <option value="Mobil Operasional / Pick Up">Mobil Operasional / Pick Up</option>
+                        <option value="Motor Trail TRC">Motor Trail TRC</option>
+                    </select>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -47,17 +63,31 @@
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                         No. HP / WA Driver
                     </label>
-                    <input type="text" name="no_hp" placeholder="08xxxxxxxxxx"
+                    <input type="text" name="kontak_driver" placeholder="08xxxxxxxxxx"
                         class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Nama Pengemudi / Driver <span class="text-rose-500">*</span>
-                </label>
-                <input type="text" name="nama_driver" required placeholder="Cth: Bpk. Slamet"
-                    class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Nama Pengemudi / Driver <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" name="nama_driver" required placeholder="Cth: Bpk. Slamet"
+                        class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Status Operational <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="status" required
+                        class="w-full text-sm border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium outline-none transition-all">
+                        <option value="tersedia" selected>Tersedia (Siaga)</option>
+                        <option value="siap">Siap Kirim</option>
+                        <option value="dalam_perjalanan">Dalam Perjalanan</option>
+                        <option value="pemeliharaan">Pemeliharaan / Rusak</option>
+                    </select>
+                </div>
             </div>
 
             <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">

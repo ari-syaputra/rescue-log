@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('barangs', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_barang')->unique()->nullable();  // Contoh: BRG-001, LOG-102
-            $table->string('nama_barang');                       // Contoh: Beras Premium, Mie Instan, Selimut
-            $table->string('kategori')->nullable();              // Contoh: Makanan, Pakaian, Obat-obatan, Tenda
-            $table->string('satuan_default', 50)->default('Pcs'); // Contoh: Dus, Kg, Pcs, Paket
-            $table->text('deskripsi')->nullable();               // Keterangan atau spesifikasi barang
+            $table->string('kode_barang')->unique()->nullable(); 
+            $table->string('nama_barang');
+            $table->string('kategori')->nullable();
+            $table->string('satuan_default', 50)->default('Pcs');
+            $table->text('deskripsi')->nullable();
             $table->timestamps();
         });
     }

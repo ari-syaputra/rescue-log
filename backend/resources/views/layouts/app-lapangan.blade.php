@@ -10,13 +10,16 @@
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#1d4ed8">
 
-    <title>@yield('title', config('app.name', 'RESCUE-LOG')) - Posko Lapangan</title>
+    <!-- Judul Tab Browser Murni RESCUE-LOG -->
+    <title>RESCUE-LOG</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
 
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    <!-- Favicon Logo Seragam -->
+    <link rel="icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -38,7 +41,7 @@
     @stack('styles')
 </head>
 
-<body class="bg-gray-100 font-sans antialiased min-h-screen flex flex-col w-full">
+<body class="bg-slate-100 font-sans antialiased min-h-screen flex flex-col w-full text-slate-800">
 
     @include('layouts.navbar-lapangan')
 
@@ -48,6 +51,7 @@
         </div>
     </main>
 
+    <!-- CDN SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -72,6 +76,9 @@
                 showConfirmButton: false,
                 timer: 3500,
                 timerProgressBar: true,
+                customClass: {
+                    popup: 'rounded-2xl shadow-lg border border-slate-100'
+                },
                 didOpen: (toast) => {
                     toast.addEventListener('mouseenter', Swal.stopTimer)
                     toast.addEventListener('mouseleave', Swal.resumeTimer)
@@ -94,6 +101,12 @@
                 Toast.fire({
                     icon: 'warning',
                     title: "{{ session('warning') }}"
+                });
+            @endif
+            @if (session('info'))
+                Toast.fire({
+                    icon: 'info',
+                    title: "{{ session('info') }}"
                 });
             @endif
 
