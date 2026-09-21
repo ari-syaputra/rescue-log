@@ -1,58 +1,67 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚨 SiGap RESCUE-LOG
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **Platform Manajemen Rantai Pasok Logistik Tanggap Darurat Bencana Terintegrasi Berbasis Progressive Web App (PWA), GIS, dan Machine Learning.**
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📌 Ringkasan Platform
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**SiGap RESCUE-LOG** menghadirkan solusi rantai pasok darurat pintar yang mengubah penanganan logistik bencana dari proses manual dan reaktif menjadi ekosistem digital yang terintegrasi, proaktif, transparan, serta berbasis data. 
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Platform ini dirancang khusus untuk memenuhi standar **6T** (*Tepat Jenis, Tepat Jumlah, Tepat Kualitas, Tepat Sasaran, Tepat Waktu, dan Tepat Biaya*) guna meredam dampak *Bullwhip Effect* saat krisis bencana terjadi.
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🏗️ Arsitektur Sistem (Microservices)
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Sistem ini dibangun dengan arsitektur **4-Layer Microservices** yang ter-deploy secara terpisah dan terhubung secara publik:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+1. **User Layer**: Dashboard Eksekutif berbasis Web Desktop untuk BNPB/BPBD & Mobile PWA *Offline-First* untuk petugas posko lapangan.
+2. **Main Application Layer (Laravel 11 Core)**: Mengelola *5-tier Role-Based Access Control (RBAC)*, logika bisnis logistik, dan layanan GIS.
+3. **AI/ML Predictive Service (Python FastAPI)**: Engine prediksi kebutuhan logistik (*demand forecasting*) menggunakan model *Random Forest* & *Prophet*.
+4. **Database & Spatial Layer (PostgreSQL + PostGIS via Supabase)**: Penyimpanan data relasional dan analisis geospasial/spasial terpusat.
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 💡 Fitur Unggulan
 
-```bash
-composer require laravel/boost --dev
+- 📱 **Progressive Web App (PWA) Offline-First**: Memungkinkan pencatatan data logistik di area bencana tanpa sinyal internet menggunakan Service Worker & IndexedDB (otomatis sinkronisasi saat *online*).
+- 🤖 **AI-Powered Demand Forecasting**: Prediksi kebutuhan logistik secara otomatis berdasarkan demografi pengungsi dan riwayat bencana.
+- 🗺️ **Interactive GIS Map (Leaflet.js)**: Visualisasi spasial titik bencana, lokasi posko, dan status stok logistik secara *real-time*.
+- 🔐 **5-Tier Role Access (RBAC)**: Hak akses berjenjang mulai dari **BNPB Pusat**, **BPBD Provinsi**, **Admin BPBD Kabupaten**, **Komando Posko**, hingga **Petugas Lapangan**.
 
-php artisan boost:install
-```
+---
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## 🌐 Deployed Environment (Live Production)
 
-## Contributing
+| Service | Technology | Status / Public URL |
+| :--- | :--- | :--- |
+| **Laravel Backend & Web App** | Laravel 11, Tailwind CSS, Leaflet | [https://rescue-log.up.railway.app](https://rescue-log.up.railway.app) |
+| **ML Predictive Engine** | Python, FastAPI, Scikit-learn | [https://fastapi-ml-production-eeee.up.railway.app](https://fastapi-ml-production-eeee.up.railway.app) |
+| **Database Server** | PostgreSQL + PostGIS | Cloud Supabase Session Pooler (Port 6543) |
+| **Infrastructure Hosting** | Railway Cloud | Automatic CI/CD Deployment |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 🛠️ Tech Stack
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Core Backend**: PHP 8.3+, Laravel 11
+- **ML Engine**: Python 3.11+, FastAPI, Pandas, Scikit-Learn
+- **Database**: PostgreSQL 15, PostGIS Extension (Supabase)
+- **Frontend**: Blade Templates, Tailwind CSS, JavaScript (ES6), Leaflet.js
+- **Deployment & Cloud**: Railway Cloud Platform
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 👥 Tim Pengembang
 
-## License
+**Universitas Jenderal Achmad Yani Yogyakarta**
+- **Fikri Egnafis** (Lead Developer / Technical Lead)
+- **Ari Syaputra S. Prakon**
+- **Zuvera Mega Chintia**
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 📄 Lisensi
+
+Project ini dikembangkan untuk kebutuhan akademik dan kompetisi teknologi kebencanaan di bawah lisensi [MIT License](LICENSE).
