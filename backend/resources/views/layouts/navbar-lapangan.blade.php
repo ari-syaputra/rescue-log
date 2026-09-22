@@ -1,10 +1,9 @@
-<nav class="w-full bg-blue-800 shadow-md sticky top-0 z-50 text-white" x-data="{
-    isOnline: navigator.onLine,
-    init() {
-        window.addEventListener('online', () => { this.isOnline = true; });
-        window.addEventListener('offline', () => { this.isOnline = false; });
-    }
-}">
+<nav class="w-full bg-blue-800 shadow-md sticky top-0 z-50 text-white" 
+     x-data="{ isOnline: navigator.onLine }"
+     x-init="
+        window.addEventListener('online', () => isOnline = true);
+        window.addEventListener('offline', () => isOnline = false);
+     ">
     <div class="w-full px-4 sm:px-6 lg:px-10">
         <div class="flex justify-between h-16">
 
