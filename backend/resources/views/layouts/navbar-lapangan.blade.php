@@ -1,36 +1,8 @@
 <nav class="w-full bg-blue-800 shadow-md sticky top-0 z-50 text-white" x-data="{
     isOnline: navigator.onLine,
     init() {
-        this.updateStatus();
-
-        // Listener event browser
-        window.addEventListener('online', () => { this.updateStatus(); });
+        window.addEventListener('online', () => { this.isOnline = true; });
         window.addEventListener('offline', () => { this.isOnline = false; });
-
-        // Pengecekan berkala setiap 4 detik
-        setInterval(() => {
-            this.updateStatus();
-        }, 4000);
-    },
-    async updateStatus() {
-        // 1. Cek dasar dari browser
-        if (!navigator.onLine) {
-            this.isOnline = false;
-            return;
-        }
-
-        // 2. Cek koneksi nyata dengan melakukan fetch ke endpoint publik eksternal
-        try {
-            const response = await fetch('https://www.google.com/favicon.ico', { 
-                mode: 'no-cors', 
-                cache: 'no-store',
-                signal: AbortSignal.timeout(3000) // Timeout 3 detik
-            });
-            this.isOnline = true;
-        } catch (error) {
-            // Jika gagal menghubungi internet luar, set ke Offline
-            this.isOnline = false;
-        }
     }
 }">
     <div class="w-full px-4 sm:px-6 lg:px-10">
@@ -38,7 +10,6 @@
 
             <!-- KIRI: Logo & Brand -->
             <div class="flex items-center space-x-3 cursor-text select-none">
-                <!-- Logo: Selalu Tampil (HP & Desktop) -->
                 <div class="w-10 h-10 rounded-xl bg-white/60 border border-white/20 backdrop-blur-md p-1.5 flex items-center justify-center shrink-0 shadow-sm">
                     <img src="{{ asset('img/Rescue-log.png') }}" alt="Logo RESCUE-LOG" class="h-full w-full object-contain">
                 </div>
@@ -53,10 +24,18 @@
                 </div>
             </div>
 
-            <!-- KANAN: Indikator Online/Offline (Ikon Only) & Profile Dropdown -->
+            <!-- KANAN: Tombol Install PWA, Indikator Sinyal & Profile Dropdown -->
             <div class="flex items-center space-x-2 sm:space-x-4" x-data="{ open: false }">
 
-                <!-- INDIKATOR IKON STATUS KONEKSI (RINGKAS & COMPACT) -->
+                <!-- TOMBOL INSTALL PWA (OTOMATIS MUNCUL JIKA DAPAT DI-INSTALL) -->
+                <button id="btn-install-pwa" type="button" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 text-slate-900 font-bold text-xs shadow-md hover:bg-amber-300 transition cursor-pointer">
+                    <svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    <span>Install App</span>
+                </button>
+
+                <!-- INDIKATOR STATUS KONEKSI (HIJAU = ONLINE, MERAH = OFFLINE) -->
                 <div class="flex items-center">
                     <!-- Saat Online: Ikon Wifi Hijau -->
                     <template x-if="isOnline">
@@ -65,7 +44,7 @@
                         </span>
                     </template>
 
-                    <!-- Saat Offline: Ikon Wifi Dicoret (Offline) Merah -->
+                    <!-- Saat Offline: Ikon Wifi Dicoret Merah + Bouncing Animation -->
                     <template x-if="!isOnline">
                         <span class="inline-flex items-center justify-center p-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-400/30 transition-all duration-300 animate-pulse" title="Terputus (Offline Mode)">
                             <svg class="w-4 h-4 text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,9 +56,7 @@
 
                 <!-- USER PROFILE DROPDOWN -->
                 <div class="relative">
-                    <button @click="open = !open" type="button"
-                        class="flex items-center space-x-2 sm:space-x-3 focus:outline-none py-1 px-1.5 sm:px-2.5 cursor-pointer">
-
+                    <button @click="open = !open" type="button" class="flex items-center space-x-2 sm:space-x-3 focus:outline-none py-1 px-1.5 sm:px-2.5 cursor-pointer">
                         <div class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
                             <x-heroicon-s-user class="w-5 h-5" />
                         </div>
@@ -93,9 +70,7 @@
                             </p>
                         </div>
 
-                        <x-heroicon-o-chevron-down
-                            class="w-4 h-4 text-blue-200 transition-transform duration-200 stroke-[2.5]"
-                            ::class="{ 'rotate-180': open }" />
+                        <x-heroicon-o-chevron-down class="w-4 h-4 text-blue-200 transition-transform duration-200 stroke-[2.5]" ::class="{ 'rotate-180': open }" />
                     </button>
 
                     <!-- DROPDOWN MENU -->
@@ -120,8 +95,7 @@
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit"
-                                class="w-full text-left px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 flex items-center space-x-2 transition cursor-pointer">
+                            <button type="submit" class="w-full text-left px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 flex items-center space-x-2 transition cursor-pointer">
                                 <x-heroicon-o-arrow-right-on-rectangle class="w-5 h-5" />
                                 <span>Keluar (Logout)</span>
                             </button>

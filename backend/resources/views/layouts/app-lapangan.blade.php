@@ -135,28 +135,29 @@
         });
 
         // HANDLER NATIVE PWA INSTALL PROMPT
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Mencegah prompt otomatis Chrome
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // Tampilkan tombol Install custom jika ada di UI (misal elemen dengan id 'btn-install-pwa')
-            const installBtn = document.getElementById('btn-install-pwa');
-            if (installBtn) {
-                installBtn.classList.remove('hidden');
-                installBtn.addEventListener('click', () => {
-                    installBtn.classList.add('hidden');
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('User menerima install PWA');
-                        }
-                        deferredPrompt = null;
-                    });
-                });
-            }
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn) {
+        installBtn.classList.remove('hidden');
+        installBtn.classList.add('flex');
+        
+        installBtn.addEventListener('click', () => {
+            installBtn.classList.remove('flex');
+            installBtn.classList.add('hidden');
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User menginstall PWA RESCUE-LOG');
+                }
+                deferredPrompt = null;
+            });
         });
+    }
+});
     </script>
 
     @stack('scripts')
