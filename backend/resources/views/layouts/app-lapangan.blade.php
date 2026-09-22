@@ -60,7 +60,7 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(reg => {
-                        console.log('[PWA SW] Service Worker Registered successfully with scope:', reg.scope);
+                        console.log('[PWA SW] Service Worker Registered:', reg.scope);
                     })
                     .catch(err => {
                         console.error('[PWA SW] Service Worker Registration failed:', err);
@@ -78,90 +78,49 @@
                 timerProgressBar: true,
                 customClass: {
                     popup: 'rounded-2xl shadow-lg border border-slate-100'
-                },
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
                 }
             });
 
             @if (session('success'))
-                Toast.fire({
-                    icon: 'success',
-                    title: "{{ session('success') }}"
-                });
+                Toast.fire({ icon: 'success', title: "{{ session('success') }}" });
             @endif
             @if (session('error'))
-                Toast.fire({
-                    icon: 'error',
-                    title: "{{ session('error') }}"
-                });
+                Toast.fire({ icon: 'error', title: "{{ session('error') }}" });
             @endif
             @if (session('warning'))
-                Toast.fire({
-                    icon: 'warning',
-                    title: "{{ session('warning') }}"
-                });
+                Toast.fire({ icon: 'warning', title: "{{ session('warning') }}" });
             @endif
             @if (session('info'))
-                Toast.fire({
-                    icon: 'info',
-                    title: "{{ session('info') }}"
-                });
+                Toast.fire({ icon: 'info', title: "{{ session('info') }}" });
             @endif
+        });
 
-            // GLOBAL NETWORK STATUS LISTENER UNTUK NAVBAR & LAYOUT LAPANGAN
-            function updateGlobalNetworkStatus() {
-                const statusBadge = document.getElementById('navbar-network-status');
-                const indicatorDot = document.getElementById('network-indicator-dot');
-                const indicatorText = document.getElementById('network-indicator-text');
-
-                if (statusBadge && indicatorDot && indicatorText) {
-                    if (navigator.onLine) {
-                        statusBadge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs bg-emerald-50 text-emerald-700 border border-emerald-200";
-                        indicatorDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-                        indicatorText.textContent = "Online";
-                    } else {
-                        statusBadge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs bg-rose-50 text-rose-700 border border-rose-200 animate-bounce";
-                        indicatorDot.className = "w-2 h-2 rounded-full bg-rose-500";
-                        indicatorText.textContent = "Offline Mode";
-                    }
-                }
+        // 2. HANDLER NATIVE PWA INSTALL PROMPT
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            const installBtn = document.getElementById('btn-install-pwa');
+            if (installBtn) {
+                installBtn.classList.remove('hidden');
+                installBtn.classList.add('inline-flex');
+                
+                installBtn.addEventListener('click', () => {
+                    installBtn.classList.remove('inline-flex');
+                    installBtn.classList.add('hidden');
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User menginstall PWA RESCUE-LOG');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
             }
-
-            window.addEventListener('online', updateGlobalNetworkStatus);
-            window.addEventListener('offline', updateGlobalNetworkStatus);
-            updateGlobalNetworkStatus();
         });
-
-        // HANDLER NATIVE PWA INSTALL PROMPT
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    
-    const installBtn = document.getElementById('btn-install-pwa');
-    if (installBtn) {
-        installBtn.classList.remove('hidden');
-        installBtn.classList.add('flex');
-        
-        installBtn.addEventListener('click', () => {
-            installBtn.classList.remove('flex');
-            installBtn.classList.add('hidden');
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User menginstall PWA RESCUE-LOG');
-                }
-                deferredPrompt = null;
-            });
-        });
-    }
-});
     </script>
 
     @stack('scripts')
-
 </body>
-
 </html>

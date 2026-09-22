@@ -1,5 +1,6 @@
 {
-  "id": "/lapangan/dashboard",
+  "id": "/",
+  "scope": "/",
   "name": "Rescue-Log Sub-Posko Offline",
   "short_name": "RescueLog SubPosko",
   "description": "Aplikasi Posko Tanggap Darurat Bencana Offline-First",
