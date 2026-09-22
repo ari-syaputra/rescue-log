@@ -1,9 +1,33 @@
 <nav class="w-full bg-blue-800 shadow-md sticky top-0 z-50 text-white" 
-     x-data="{ isOnline: navigator.onLine }"
-     x-init="
-        window.addEventListener('online', () => isOnline = true);
-        window.addEventListener('offline', () => isOnline = false);
-     ">
+     x-data="{ 
+        isOnline: navigator.onLine,
+        checkInterval: null,
+
+        init() {
+            // Deteksi respon cepat dari adapter jaringan OS
+            window.addEventListener('online', () => this.checkConnection());
+            window.addEventListener('offline', () => { this.isOnline = false; });
+
+            // Ping pertama saat pertama di-load
+            this.checkConnection();
+
+            // Ping berkala tiap 4 detik (memutus koneksi jika internet mati walau Wi-Fi aktif)
+            this.checkInterval = setInterval(() => this.checkConnection(), 4000);
+        },
+
+        async checkConnection() {
+            try {
+                // Request ping dengan parameter ?check= agar di-bypass oleh sw.js
+                const res = await fetch('/ping?check=' + Date.now(), {
+                    method: 'HEAD',
+                    cache: 'no-store'
+                });
+                this.isOnline = res.ok;
+            } catch (e) {
+                this.isOnline = false;
+            }
+        }
+     }">
     <div class="w-full px-4 sm:px-6 lg:px-10">
         <div class="flex justify-between h-16">
 
@@ -23,34 +47,24 @@
                 </div>
             </div>
 
-            <!-- KANAN: Tombol Install PWA, Indikator Sinyal & Profile Dropdown -->
+            <!-- KANAN: Indikator Sinyal & Profile Dropdown -->
             <div class="flex items-center space-x-2 sm:space-x-4" x-data="{ open: false }">
 
-                <!-- TOMBOL INSTALL PWA (OTOMATIS MUNCUL JIKA DAPAT DI-INSTALL) -->
-                <button id="btn-install-pwa" type="button" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 text-slate-900 font-bold text-xs shadow-md hover:bg-amber-300 transition cursor-pointer">
-                    <svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    <span>Install App</span>
-                </button>
-
-                <!-- INDIKATOR STATUS KONEKSI (HIJAU = ONLINE, MERAH = OFFLINE) -->
+                <!-- INDIKATOR STATUS KONEKSI (HIJAU = ONLINE, MERAH SOLID = OFFLINE) -->
                 <div class="flex items-center">
-                    <!-- Saat Online: Ikon Wifi Hijau -->
-                    <template x-if="isOnline">
-                        <span class="inline-flex items-center justify-center p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 transition-all duration-300" title="Sinyal Online">
-                            <x-heroicon-o-wifi class="w-4 h-4 text-emerald-300" />
-                        </span>
-                    </template>
+                    <!-- Saat Online: Badge Hijau Solid -->
+                    <div x-show="isOnline" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow-md transition-all duration-300" title="Sinyal Online">
+                        <x-heroicon-o-wifi class="w-4 h-4 text-white" />
+                        <span class="hidden sm:inline">Online</span>
+                    </div>
 
-                    <!-- Saat Offline: Ikon Wifi Dicoret Merah + Bouncing Animation -->
-                    <template x-if="!isOnline">
-                        <span class="inline-flex items-center justify-center p-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-400/30 transition-all duration-300 animate-pulse" title="Terputus (Offline Mode)">
-                            <svg class="w-4 h-4 text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M12 20h.01m-4.08-3.596a5.5 5.5 0 014.07-1.404m3.708 1.404a5.5 5.5 0 00.37-.371m-7.08-3.125a10.026 10.026 0 013.012-1.312m6.128 1.312a9.96 9.96 0 011.892 1.813M1.394 9.393a15.94 15.94 0 014.243-2.923m11.314 0a15.94 15.94 0 014.243 2.923" />
-                            </svg>
-                        </span>
-                    </template>
+                    <!-- Saat Offline: Badge Merah Solid Menyalakan dengan Animasi Pulse -->
+                    <div x-show="!isOnline" x-cloak class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs shadow-md animate-pulse transition-all duration-300" title="Terputus (Offline Mode)">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M12 20h.01m-4.08-3.596a5.5 5.5 0 014.07-1.404m3.708 1.404a5.5 5.5 0 00.37-.371m-7.08-3.125a10.026 10.026 0 013.012-1.312m6.128 1.312a9.96 9.96 0 011.892 1.813M1.394 9.393a15.94 15.94 0 014.243-2.923m11.314 0a15.94 15.94 0 014.243 2.923" />
+                        </svg>
+                        <span>Offline</span>
+                    </div>
                 </div>
 
                 <!-- USER PROFILE DROPDOWN -->

@@ -1,6 +1,9 @@
-const CACHE_NAME = 'sigap-subposko-cache-v5';
+const CACHE_NAME = 'sigap-subposko-cache-v11';
 
 const ASSETS_TO_CACHE = [
+    '/',
+    '/login',
+    '/ping',
     '/lapangan/dashboard',
     '/lapangan/pengungsi',
     '/lapangan/pengajuan',
@@ -15,28 +18,30 @@ const ASSETS_TO_CACHE = [
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
+// 1. Install & Pre-cache
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[PWA SW] Installing & Caching Assets...');
-            // Menggunakan Promise.allSettled agar jika 1 URL 404, file lainnya TETAP ter-cache!
+            console.log('[PWA SW] Pre-caching assets...');
             return Promise.allSettled(
                 ASSETS_TO_CACHE.map(url => 
                     fetch(url).then(response => {
                         if (response.ok) return cache.put(url, response);
-                    }).catch(err => console.warn('[PWA SW] Skip cache for:', url))
+                    }).catch(err => console.warn('[PWA SW] Skip cache:', url))
                 )
             );
         }).then(() => self.skipWaiting())
     );
 });
 
+// 2. Activate & Clean Old Caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) {
+                        console.log('[PWA SW] Deleting old cache:', key);
                         return caches.delete(key);
                     }
                 })
@@ -45,25 +50,33 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// 3. Fetch Strategy: Network First (Abaikan Request Ping Check agar tidak di-cache)
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
+    // ABAIKAN REQUEST PING CHECK AGAR TEMBUS LANGSUNG KE NETWORK
+    if (event.request.url.includes('check=')) {
+        return; // Biarkan browser menangani secara langsung ke jaringan
+    }
+
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-            return fetch(event.request).then((networkResponse) => {
+        fetch(event.request)
+            .then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
                 }
                 return networkResponse;
-            }).catch(() => {
-                if (event.request.headers.get('accept')?.includes('text/html')) {
-                    return caches.match('/lapangan/dashboard');
-                }
-            });
-        })
+            })
+            .catch(() => {
+                return caches.match(event.request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    if (event.request.headers.get('accept')?.includes('text/html')) {
+                        return caches.match('/lapangan/dashboard') || caches.match('/login');
+                    }
+                });
+            })
     );
 });

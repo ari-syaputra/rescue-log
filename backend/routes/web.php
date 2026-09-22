@@ -13,6 +13,15 @@ use App\Http\Controllers\PredictionController;
 
 /*
 |--------------------------------------------------------------------------
+| Public Ping Endpoint (PWA Network Heartbeat Check)
+|--------------------------------------------------------------------------
+*/
+Route::get('/ping', function () {
+    return response()->noContent(); // Status 204 No Content
+})->name('ping');
+
+/*
+|--------------------------------------------------------------------------
 | Root Redirect — arahkan sesuai role yang login
 |--------------------------------------------------------------------------
 */

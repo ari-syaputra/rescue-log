@@ -9,9 +9,11 @@
     <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#1d4ed8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <!-- Judul Tab Browser Murni RESCUE-LOG -->
-    <title>RESCUE-LOG</title>
+    <title>RESCUE-LOG - Sistem Posko Kebencanaan</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,10 +22,10 @@
     <!-- Favicon Logo Seragam -->
     <link rel="icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
     <link rel="shortcut icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/Rescue-log.png') }}">
 
+    <!-- Asset Vite (CSS & JS Utama + Alpine.js Bawaan) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
         [x-cloak] {
@@ -60,16 +62,16 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(reg => {
-                        console.log('[PWA SW] Service Worker Registered:', reg.scope);
+                        console.log('[PWA SW Lapangan] Registered successfully with scope:', reg.scope);
                     })
                     .catch(err => {
-                        console.error('[PWA SW] Service Worker Registration failed:', err);
+                        console.error('[PWA SW Lapangan] Registration failed:', err);
                     });
             });
         }
 
+        // 2. GLOBAL TOAST NOTIFICATION HELPER
         document.addEventListener('DOMContentLoaded', function() {
-            // Global Toast Notification Helper
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
@@ -95,32 +97,16 @@
             @endif
         });
 
-        // 2. HANDLER NATIVE PWA INSTALL PROMPT
+        // 3. HANDLER NATIVE PWA INSTALL PROMPT
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            
-            const installBtn = document.getElementById('btn-install-pwa');
-            if (installBtn) {
-                installBtn.classList.remove('hidden');
-                installBtn.classList.add('inline-flex');
-                
-                installBtn.addEventListener('click', () => {
-                    installBtn.classList.remove('inline-flex');
-                    installBtn.classList.add('hidden');
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('User menginstall PWA RESCUE-LOG');
-                        }
-                        deferredPrompt = null;
-                    });
-                });
-            }
+            console.log('[PWA SW] Native install prompt ready.');
         });
     </script>
 
     @stack('scripts')
 </body>
+
 </html>
