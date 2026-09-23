@@ -5,11 +5,10 @@
 @section('content')
     <div class="w-full space-y-6 font-sans">
 
-        <!-- 1. TAMPILAN HEADER KHUSUS MOBILE (DILIHAT DI SMARTPHONE) -->
+        <!-- 1. TAMPILAN HEADER KHUSUS MOBILE -->
         <div class="flex flex-col gap-3 mb-4 sm:hidden">
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2.5">
-                    <!-- Tombol Kembali Bulat Ringkas -->
                     <a href="{{ route('lapangan.dashboard') }}"
                         class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-600 transition shadow-2xs shrink-0 cursor-pointer">
                         <x-heroicon-s-arrow-left class="w-4 h-4" />
@@ -21,7 +20,6 @@
                     </div>
                 </div>
 
-                <!-- Tombol Perbarui Data Ramping -->
                 <a href="{{ route('lapangan.pengungsi.index') }}"
                     class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer">
                     <x-heroicon-s-arrow-path class="w-3.5 h-3.5 text-white" />
@@ -35,8 +33,7 @@
             </div>
         </div>
 
-
-        <!-- 2. TAMPILAN HEADER KHUSUS DESKTOP & TABLET (DESKTOP LENGKAP) -->
+        <!-- 2. TAMPILAN HEADER KHUSUS DESKTOP & TABLET -->
         <div class="hidden sm:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="flex items-center gap-3">
                 <a href="{{ route('lapangan.dashboard') }}"
@@ -52,7 +49,6 @@
             </div>
 
             <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                <!-- BANNER INDIKATOR PENDING OFFLINE QUEUE -->
                 <div id="offlineSyncBanner" class="hidden items-center gap-2 px-3 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold">
                     <span>🔄 <span id="offlineQueueCount">0</span> Draf Offline</span>
                 </div>
@@ -73,7 +69,6 @@
 
             <div x-show="!isLoading" style="display: none;" class="space-y-6">
                 <div>
-                    <!-- DENGAN PASSED PROPS: PERBAIKAN STATS BADGE & RECEIVER COUNT -->
                     <x-sub-posko.pengajuan.stats-overview 
                         :pendataan="$pendataan" 
                         :estimasi="$estimasi" 
@@ -82,7 +77,7 @@
                     />
                 </div>
 
-                <!-- 📦 SECTION DAFTAR ANTREAN PENGAJUAN OFFLINE (PENDING SYNC) -->
+                <!-- SECTION DAFTAR ANTREAN PENGAJUAN OFFLINE -->
                 <div id="offlineQueueContainer" class="hidden space-y-4 bg-amber-50/60 border border-amber-200/80 p-5 rounded-2xl shadow-xs">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/60 pb-3">
                         <div class="flex items-center gap-2.5">
@@ -106,7 +101,6 @@
                         </button>
                     </div>
 
-                    <!-- Container Tempat Item-Item Draf Render Secara Dinamis -->
                     <div id="offlineQueueList" class="space-y-3">
                         <!-- Rendered via JavaScript -->
                     </div>
@@ -145,10 +139,8 @@
 @endsection
 
 @push('scripts')
-    <!-- Script Storage Offline LocalForage, ONNX Runtime Web, & SweetAlert -->
     <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 
     <script>
         function updateQty(name, step) {
@@ -164,106 +156,24 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             const form = document.getElementById('form-pengajuan');
-            const badgeStatus = document.getElementById('badgeNetworkStatus');
-            const offlineBanner = document.getElementById('offlineSyncBanner');
-            const queueCountElem = document.getElementById('offlineQueueCount');
 
-            // 1. DUA LAPISAN PREDIKSI OFFLINE CACHING & ONNX INFERENCE ENGINE
-            const serverEstimasi = @json($estimasi ?? []);
-            const pendataanPayload = @json($pendataan ?? null);
-
-            if (navigator.onLine && Object.keys(serverEstimasi).length > 0) {
-                // Saat Online: Simpan hasil prediksi ML dari server ke Cache Lokal
-                await localforage.setItem('last_ml_estimation', serverEstimasi);
-            } else if (!navigator.onLine) {
-                // Saat Offline: Ambil dari Cache LocalForage atau Eksekusi ONNX Web Engine
-                await applyOfflinePrediction(pendataanPayload);
-            }
-
-            async function applyOfflinePrediction(pendataan) {
-                let cachedEstimasi = await localforage.getItem('last_ml_estimation');
-                
-                // Opsi A: Jika ada cache hasil prediksi server sebelumnya
-                if (cachedEstimasi && Object.keys(cachedEstimasi).length > 0) {
-                    console.log("⚡ [Offline PWA] Menggunakan Cache Prediksi Terakhir:", cachedEstimasi);
-                    fillFormValues(cachedEstimasi);
-                    return;
-                }
-
-                // Opsi B: Jika cache kosong, jalankan ONNX Web Model langsung di Browser HP
-                if (pendataan && typeof ort !== 'undefined') {
-                    try {
-                        console.log("🤖 [Offline PWA] Menjalankan Inferensi Engine ONNX Client-Side...");
-                        const session = await ort.InferenceSession.create('/models/model_logistik.onnx');
-                        
-                        const feeds = {
-                            total_pengungsi: new ort.Tensor('float32', [parseFloat(pendataan.total_pengungsi || 1)], [1, 1]),
-                            anak_balita: new ort.Tensor('float32', [parseFloat(pendataan.balita || 0)], [1, 1]),
-                            dewasa: new ort.Tensor('float32', [parseFloat(pendataan.dewasa || 1)], [1, 1]),
-                            ibu_hamil: new ort.Tensor('float32', [parseFloat(pendataan.ibu_hamil || 0)], [1, 1]),
-                            lansia: new ort.Tensor('float32', [parseFloat(pendataan.lansia || 0)], [1, 1]),
-                            disabilitas: new ort.Tensor('float32', [parseFloat(pendataan.disabilitas || 0)], [1, 1]),
-                            tipe_tempat: new ort.Tensor('string', [String(pendataan.tipe_tempat || 'Balai Desa')], [1, 1]),
-                            akses_air: new ort.Tensor('string', [String(pendataan.akses_air || 'Cukup')], [1, 1]),
-                            suhu_celcius: new ort.Tensor('float32', [parseFloat(pendataan.suhu_celcius || 28.5)], [1, 1]),
-                            cuaca: new ort.Tensor('string', [String(pendataan.cuaca || 'Hujan Deras')], [1, 1]),
-                            akses_jalan: new ort.Tensor('string', [String(pendataan.akses_jalan || 'Mobil/Truk Bisa Masuk')], [1, 1]),
-                            lama_pengungsian_hari: new ort.Tensor('float32', [parseFloat(pendataan.lama_pengungsian || 1)], [1, 1])
-                        };
-
-                        const results = await session.run(feeds);
-                        console.log("✅ [Offline PWA] Sukses Inferensi ONNX:", results);
-                        // Isikan hasil inferensi tensor ONNX ke formulir
-                    } catch (onnxErr) {
-                        console.warn("⚠️ ONNX Engine Fallback ke Heuristic JS:", onnxErr);
-                    }
-                }
-            }
-
-            function fillFormValues(data) {
-                for (const [key, val] of Object.entries(data)) {
-                    const el = document.getElementById('input-' + key);
-                    if (el && (!el.value || el.value == '0')) {
-                        el.value = val;
-                    }
-                }
-            }
-
-            // 2. MONITORING STATUS SINYAL LAPANGAN
-            function checkNetworkStatus() {
-                if (navigator.onLine) {
-                    badgeStatus.className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200";
-                    badgeStatus.innerHTML = '<span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Online';
-                    syncOfflineQueue();
-                } else {
-                    badgeStatus.className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200";
-                    badgeStatus.innerHTML = '<span class="w-2 h-2 mr-1.5 bg-rose-500 rounded-full"></span> Offline Mode';
-                }
+            // 1. CEK STATUS KONEKSI & SINKRONISASI PENDING QUEUE
+            function checkNetworkAndSync() {
                 updateOfflineQueueBadge();
-            }
-
-            window.addEventListener('online', checkNetworkStatus);
-            window.addEventListener('offline', checkNetworkStatus);
-            checkNetworkStatus();
-
-            // 3. CEK DAN UPDATE BADGE ANTREAN OFFLINE
-            async function updateOfflineQueueBadge() {
-                const queue = await localforage.getItem('subposko_pengajuan_queue') || [];
-                if (queue.length > 0) {
-                    offlineBanner.classList.remove('hidden');
-                    offlineBanner.classList.add('flex');
-                    queueCountElem.textContent = queue.length;
-                } else {
-                    offlineBanner.classList.add('hidden');
-                    offlineBanner.classList.remove('flex');
+                if (navigator.onLine) {
+                    syncOfflineQueue();
                 }
             }
 
-            // 4. INTERSEPSI SUBMIT FORM UNTUK STRATEGI OFFLINE-FIRST
+            window.addEventListener('online', checkNetworkAndSync);
+            window.addEventListener('offline', updateOfflineQueueBadge);
+            checkNetworkAndSync();
+
+            // 2. INTERCEPT SUBMIT FORM PADA KONDISI OFFLINE
             if (form) {
                 form.addEventListener('submit', async function(e) {
                     if (!navigator.onLine) {
-                        e.preventDefault(); // Hentikan HTTP Submit bawaan
+                        e.preventDefault(); // Mencegah submit HTTP biasa saat offline
 
                         const formData = new FormData(form);
                         const formPayload = {};
@@ -287,111 +197,73 @@
                         updateOfflineQueueBadge();
                         renderOfflineQueueUI();
 
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: 'Disimpan Secara Offline! 📡',
-                                text: 'Sinyal terputus di lokasi sub-posko. Data pengajuan berhasil disimpan di memori HP & akan otomatis terkirim begitu terhubung internet.',
-                                icon: 'warning',
-                                confirmButtonText: 'Mengerti',
-                                confirmButtonColor: '#D97706',
-                                customClass: {
-                                    popup: 'rounded-2xl',
-                                    confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
-                                }
-                            });
-                        } else {
-                            alert("Disimpan Secara Offline! Data pengajuan disimpan di ponsel dan akan terkirim saat ada sinyal.");
-                        }
+                        Swal.fire({
+                            title: 'Disimpan Secara Offline! 📡',
+                            text: 'Sinyal terputus di lokasi sub-posko. Data pengajuan berhasil disimpan di memori HP & akan otomatis terkirim begitu terhubung internet.',
+                            icon: 'warning',
+                            confirmButtonText: 'Mengerti',
+                            confirmButtonColor: '#D97706',
+                            customClass: {
+                                popup: 'rounded-2xl',
+                                confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
+                            }
+                        });
 
                         form.reset();
                     }
                 });
             }
 
-            // 5. OTOMATIS SYNC SAAT SINYAL INTERNET KEMBALI PULIH
-            async function syncOfflineQueue() {
-                let queue = await localforage.getItem('subposko_pengajuan_queue') || [];
-                if (queue.length === 0) return;
-
-                console.log("Menyinkronkan pengajuan offline ke server...", queue);
-
-                for (let i = 0; i < queue.length; i++) {
-                    const item = queue[i];
-                    try {
-                        const response = await fetch("{{ route('lapangan.pengajuan.store') }}", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify(item.payload)
-                        });
-
-                        if (!response.ok) {
-                            console.error("Gagal sync item:", item.id);
-                        }
-                    } catch (err) {
-                        console.error("Error sync network:", err);
-                        return;
-                    }
-                }
-
-                await localforage.removeItem('subposko_pengajuan_queue');
-                updateOfflineQueueBadge();
-                renderOfflineQueueUI();
-
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Sinkronisasi Sukses! 🚀',
-                        text: 'Seluruh draf pengajuan logistik offline berhasil terkirim ke Posko Komando Utama.',
-                        icon: 'success',
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#059669',
-                        customClass: {
-                            popup: 'rounded-2xl',
-                            confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
-                        }
-                    });
-                }
-            }
-
-            // Session Flash Notifications
-            @if (session('error'))
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Gagal!',
-                        text: "{{ session('error') }}",
-                        icon: 'error',
-                        confirmButtonText: 'Tutup',
-                        confirmButtonColor: '#DC2626',
-                        customClass: {
-                            popup: 'rounded-2xl',
-                            confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
-                        }
-                    });
-                }
-            @endif
-
-            @if (session('warning'))
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Perhatian',
-                        text: "{{ session('warning') }}",
-                        icon: 'warning',
-                        confirmButtonText: 'Mengerti',
-                        confirmButtonColor: '#D97706',
-                        customClass: {
-                            popup: 'rounded-2xl',
-                            confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
-                        }
-                    });
-                }
-            @endif
-
             renderOfflineQueueUI();
         });
 
-        // Function untuk Membaca & Merender List Antrean Offline dari LocalForage (IndexedDB)
+        // 3. FUNGSI SINKRONISASI ANTREAN OFFLINE KE SERVER
+        async function syncOfflineQueue() {
+            let queue = await localforage.getItem('subposko_pengajuan_queue') || [];
+            if (queue.length === 0) return;
+
+            console.log("⚡ [Offline Sync] Menyinkronkan pengajuan ke server...", queue);
+
+            for (let i = 0; i < queue.length; i++) {
+                const item = queue[i];
+                try {
+                    const response = await fetch("{{ route('lapangan.pengajuan.store') }}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                        },
+                        body: JSON.stringify(item.payload)
+                    });
+
+                    if (!response.ok) {
+                        console.error("Gagal sync item:", item.id);
+                    }
+                } catch (err) {
+                    console.error("Error sync network:", err);
+                    return; // Hentikan loop jika koneksi belum stabil
+                }
+            }
+
+            await localforage.removeItem('subposko_pengajuan_queue');
+            updateOfflineQueueBadge();
+            renderOfflineQueueUI();
+
+            Swal.fire({
+                title: 'Sinkronisasi Sukses! 🚀',
+                text: 'Seluruh draf pengajuan logistik offline berhasil terkirim ke Posko Komando Utama.',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#059669',
+                customClass: {
+                    popup: 'rounded-2xl',
+                    confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
+                }
+            }).then(() => window.location.reload());
+        }
+
+        // 4. RENDER UI LIST ANTREAN OFFLINE
         async function renderOfflineQueueUI() {
             const queueContainer = document.getElementById('offlineQueueContainer');
             const queueList = document.getElementById('offlineQueueList');
@@ -458,83 +330,22 @@
             queue = queue.filter(item => item.id !== itemId);
             await localforage.setItem('subposko_pengajuan_queue', queue);
             renderOfflineQueueUI();
-            
-            const offlineBanner = document.getElementById('offlineSyncBanner');
-            const queueCountElem = document.getElementById('offlineQueueCount');
-            if (queue.length > 0) {
-                if (queueCountElem) queueCountElem.textContent = queue.length;
-            } else {
-                if (offlineBanner) {
-                    offlineBanner.classList.add('hidden');
-                    offlineBanner.classList.remove('flex');
-                }
-            }
+            updateOfflineQueueBadge();
         }
 
         async function triggerManualSync() {
             if (!navigator.onLine) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Masih Offline 📡',
-                        text: 'Perangkat Anda belum terhubung ke jaringan internet. Silakan hubungkan internet terlebih dahulu.',
-                        icon: 'warning',
-                        confirmButtonColor: '#D97706'
-                    });
-                } else {
-                    alert("Masih Offline! Perangkat Anda belum terhubung ke jaringan internet.");
-                }
+                Swal.fire({
+                    title: 'Masih Offline 📡',
+                    text: 'Perangkat Anda belum terhubung ke jaringan internet.',
+                    icon: 'warning',
+                    confirmButtonColor: '#D97706'
+                });
                 return;
             }
-
-            let queue = await localforage.getItem('subposko_pengajuan_queue') || [];
-            if (queue.length === 0) return;
-
-            for (let i = 0; i < queue.length; i++) {
-                const item = queue[i];
-                try {
-                    const response = await fetch("{{ route('lapangan.pengajuan.store') }}", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify(item.payload)
-                    });
-
-                    if (!response.ok) {
-                        console.error("Gagal sync item:", item.id);
-                    }
-                } catch (err) {
-                    console.error("Error sync network:", err);
-                    return;
-                }
-            }
-
-            await localforage.removeItem('subposko_pengajuan_queue');
-            
-            const offlineBanner = document.getElementById('offlineSyncBanner');
-            if (offlineBanner) {
-                offlineBanner.classList.add('hidden');
-                offlineBanner.classList.remove('flex');
-            }
-            renderOfflineQueueUI();
-
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Sinkronisasi Sukses! 🚀',
-                    text: 'Seluruh draf pengajuan logistik offline berhasil terkirim ke Posko Komando Utama.',
-                    icon: 'success',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#059669',
-                    customClass: {
-                        popup: 'rounded-2xl',
-                        confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm'
-                    }
-                });
-            }
+            await syncOfflineQueue();
         }
 
-        // Sesuaikan fungsi update badge offline queue di JS
         async function updateOfflineQueueBadge() {
             const queue = await localforage.getItem('subposko_pengajuan_queue') || [];
             const count = queue.length;

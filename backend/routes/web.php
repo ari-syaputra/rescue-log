@@ -187,5 +187,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/ambulans', [Lapangan\LapanganAmbulansController::class, 'index'])->name('ambulans.index');
         Route::post('/ambulans', [Lapangan\LapanganAmbulansController::class, 'store'])->name('ambulans.store');
         Route::post('/ambulans/{id}/konfirmasi', [Lapangan\LapanganAmbulansController::class, 'konfirmasiSelesai'])->name('ambulans.konfirmasi');
+
+        Route::post('/pengajuan/sync-offline', [Lapangan\PengajuanController::class, 'syncOffline'])->name('pengajuan.sync-offline');
+        Route::post('/pengungsi/sync-offline', [Lapangan\PengungsiController::class, 'syncOffline'])->name('pengungsi.sync-offline');
     });
 });

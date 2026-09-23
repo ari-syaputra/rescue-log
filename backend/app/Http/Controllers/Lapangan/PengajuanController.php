@@ -7,6 +7,7 @@ use App\Models\Pendataan;
 use App\Models\PengajuanKebutuhan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -105,6 +106,13 @@ class PengajuanController extends Controller
             ->first();
 
         if (!$pendataan) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Silakan isi Form Pendataan Pengungsi terlebih dahulu.'
+                ], 422);
+            }
+
             return redirect()->route('lapangan.pengungsi.index')
                 ->with('error', 'Silakan isi Form Pendataan Pengungsi terlebih dahulu.');
         }
@@ -139,6 +147,13 @@ class PengajuanController extends Controller
             + (float) $request->input('obat_p3k_paket', 0);
 
         if ($totalInput <= 0) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Minimal harus mengajukan 1 jenis logistik dengan jumlah lebih dari 0.'
+                ], 422);
+            }
+
             return redirect()->back()
                 ->with('error', 'Minimal harus mengajukan 1 jenis logistik dengan jumlah lebih dari 0.')
                 ->withInput();
@@ -167,10 +182,28 @@ class PengajuanController extends Controller
                 'catatan_posko'        => $request->catatan_posko,
             ]);
 
+            // Jika Request dikirim via JavaScript Ajax (Offline Auto-Sync)
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'Pengajuan logistik berhasil dikirimkan ke Posko Komando!',
+                    'data'    => $pengajuan
+                ], 200);
+            }
+
             return redirect()->route('lapangan.stok.index')
                 ->with('success', 'Pengajuan kebutuhan logistik berhasil dikirimkan ke Posko Komando!');
 
         } catch (\Exception $e) {
+            Log::error('Gagal menyimpan pengajuan: ' . $e->getMessage());
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Gagal menyimpan pengajuan: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()->back()
                 ->with('error', 'Gagal menyimpan pengajuan: ' . $e->getMessage())
                 ->withInput();

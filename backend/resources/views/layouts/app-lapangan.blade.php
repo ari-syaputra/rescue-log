@@ -52,7 +52,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // 1. REGISTRASI SERVICE WORKER PWA (BERSIH DARI PRE-FETCH SPAM)
+        // 1. REGISTRASI SERVICE WORKER PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
