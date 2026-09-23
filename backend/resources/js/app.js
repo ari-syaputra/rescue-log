@@ -1,9 +1,11 @@
 import './bootstrap';
 import Alpine from 'alpinejs';
-import persist from '@alpinejs/persist'; // 1. Import plugin persist
+import persist from '@alpinejs/persist';
+import localforage from 'localforage';
 
 window.Alpine = Alpine;
+window.localforage = localforage;
 
-Alpine.plugin(persist); // 2. Daftarkan plugin ke Alpine
+Alpine.plugin(persist);
 
 Alpine.start();

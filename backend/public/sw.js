@@ -1,9 +1,9 @@
-const CACHE_NAME = 'sigap-subposko-cache-v20';
+const CACHE_NAME = 'sigap-subposko-cache-v21';
 
-// DAFTAR RUTE & ASSET KHUSUS MODUL LAPANGAN YANG WAJIB DI-CACHE
 const ASSETS_TO_CACHE = [
     '/lapangan/dashboard',
     '/lapangan/pengungsi',
+    '/lapangan/pengungsi/create',
     '/lapangan/pengajuan',
     '/lapangan/penyaluran',
     '/lapangan/stok',
@@ -16,7 +16,7 @@ const ASSETS_TO_CACHE = [
 
 // 1. INSTALL EVENT: PRE-CACHE SELURUH RUTE LAPANGAN SAAT ONLINE
 self.addEventListener('install', (event) => {
-    console.log('[PWA SW Lapangan] Installing Production Cache v20...');
+    console.log('[PWA SW Lapangan] Installing Production Cache v21...');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return Promise.allSettled(
@@ -30,9 +30,9 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// 2. ACTIVATE EVENT: BERSIHKAN CACHE VERA LAMA & AMBIL KONTROL SEGERA
+// 2. ACTIVATE EVENT: BERSIHKAN CACHE LAMA & AMBIL KONTROL SEGERA
 self.addEventListener('activate', (event) => {
-    console.log('[PWA SW Lapangan] Activating Production Cache v20...');
+    console.log('[PWA SW Lapangan] Activating Production Cache v21...');
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
@@ -47,7 +47,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// 3. FETCH EVENT: SERVE DARI CACHE DULU (PENGUNGSI, PENGAJUAN, DLL)
+// 3. FETCH EVENT
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
@@ -60,9 +60,7 @@ self.addEventListener('fetch', (event) => {
     if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
         event.respondWith(
             caches.match(event.request).then((cachedResponse) => {
-                // JIKA HALAMAN SUDAH ADA DI CACHE: Langsung tampilkan (Akses Offline Instan)
                 if (cachedResponse) {
-                    // Update cache di background jika sedang Online
                     if (navigator.onLine) {
                         fetch(event.request).then((networkResponse) => {
                             if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
@@ -73,7 +71,6 @@ self.addEventListener('fetch', (event) => {
                     return cachedResponse;
                 }
 
-                // JIKA TIDAK ADA DI CACHE: Coba ambil dari Network
                 return fetch(event.request)
                     .then((networkResponse) => {
                         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
@@ -83,7 +80,6 @@ self.addEventListener('fetch', (event) => {
                         return networkResponse;
                     })
                     .catch(() => {
-                        // Fallback ke Dashboard jika rute spesifik belum pernah di-cache
                         return caches.match('/lapangan/dashboard');
                     });
             })
@@ -97,13 +93,18 @@ self.addEventListener('fetch', (event) => {
             if (cachedResponse) {
                 return cachedResponse;
             }
-            return fetch(event.request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-                }
-                return networkResponse;
-            });
+            return fetch(event.request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+                    }
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Aset belum ke-cache & offline — jangan biarkan unhandled rejection
+                    return new Response('', { status: 504, statusText: 'Offline - asset unavailable' });
+                });
         })
     );
 });
