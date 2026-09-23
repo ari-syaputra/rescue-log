@@ -2,7 +2,6 @@
 
 <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs h-full flex flex-col justify-between space-y-5">
 
-    <!-- 1. BAGIAN: PENGAJUAN SIAP DIKIRIM -->
     <div class="flex-1 flex flex-col min-h-0">
         <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
             <h3 class="text-base font-bold text-slate-900">
@@ -30,7 +29,6 @@
                         </span>
                     </div>
 
-                    <!-- RINGKASAN ITEM BARANG -->
                     <div class="flex flex-wrap gap-1.5 text-[11px] font-medium text-slate-600">
                         @if ($item->beras_kg > 0)
                             <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-md">Beras: {{ $item->beras_kg }}kg</span>
@@ -46,7 +44,6 @@
                         @endif
                     </div>
 
-                    <!-- FORM TUGASKAN ARMADA -->
                     <form action="{{ route('komando.distribusi.store') }}" method="POST" class="flex items-center gap-2 pt-1 w-full">
                         @csrf
                         <input type="hidden" name="pengajuan_id" value="{{ $item->id }}">
@@ -75,7 +72,6 @@
         </div>
     </div>
 
-    <!-- 2. BAGIAN: PENGIRIMAN AKTIF (DALAM PERJALANAN) -->
     <div class="flex-1 flex flex-col min-h-0">
         <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
             <h3 class="text-base font-bold text-slate-900">
@@ -86,18 +82,24 @@
             </span>
         </div>
 
-        <div class="flex-1 flex flex-col min-h-0 overflow-hidden pr-0.5">
-            @forelse($pengirimans->filter(fn($p) => in_array(strtolower($p->status_distribusi ?? ''), ['dalam perjalanan', 'dalam_perjalanan', 'dalam pengiriman'])) as $shipment)
-                <div class="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-xs h-full flex flex-col justify-between">
+        <div class="flex-1 flex flex-col min-h-0 overflow-y-auto pr-0.5 space-y-3">
+            @php
+                $activeShipments = $pengirimans->filter(function($p) {
+                    $st = strtolower($p->status_pengiriman ?? $p->status_distribusi ?? '');
+                    return in_array($st, ['dalam_perjalanan', 'dalam perjalanan', 'dalam pengiriman', 'proses_dikirim']);
+                });
+            @endphp
+
+            @forelse($activeShipments as $shipment)
+                <div class="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-xs flex flex-col justify-between shrink-0">
                     
-                    <!-- ATAS: ID & STATUS -->
                     <div class="flex items-start justify-between">
                         <div>
                             <span class="text-xs font-bold font-mono text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100/80 inline-block">
-                                #{{ $shipment->pengajuan->kode_pengajuan ?? 'REQ-20260914-IQ65' }}
+                                #{{ $shipment->pengajuan->kode_pengajuan ?? ('REQ-PENGIRIMAN-' . $shipment->id) }}
                             </span>
                             <h4 class="font-bold text-slate-900 text-sm mt-1.5">
-                                Tujuan: {{ $shipment->posko->nama_posko ?? ($shipment->pengajuan->posko->nama_posko ?? 'Posko ALi akbar') }}
+                                Tujuan: {{ $shipment->posko->nama_posko ?? ($shipment->pengajuan->posko->nama_posko ?? 'Sub-Posko Lapangan') }}
                             </h4>
                         </div>
                         <span class="text-[11px] font-bold bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-md border border-amber-200/50 flex items-center gap-1 shrink-0">
@@ -106,35 +108,34 @@
                         </span>
                     </div>
 
-                    <!-- TENGAH: DETAIL ARMADA & STATUS LOKASI -->
                     <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-100 my-2 space-y-2">
                         <div class="grid grid-cols-2 gap-2 text-xs">
                             <div>
                                 <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">ARMADA</p>
                                 <p class="font-bold text-slate-800 text-[11px] mt-0.5 truncate">
-                                    {{ $shipment->armada->nama_armada ?? 'Truk Engkel Logistik A1' }}
+                                    {{ $shipment->armada->nama_armada ?? 'Truk Logistik A1' }}
                                 </p>
                             </div>
                             <div>
                                 <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">DRIVER / NOPOL</p>
                                 <p class="font-bold text-slate-800 text-[11px] mt-0.5 truncate">
-                                    {{ $shipment->armada->plat_nomor ?? 'AB 8123 CD' }}
+                                    {{ $shipment->armada->plat_nomor ?? '-' }} ({{ $shipment->armada->nama_driver ?? '-' }})
                                 </p>
                             </div>
                         </div>
 
                         <div class="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
                             <span>Jalur: <strong class="text-emerald-600 font-semibold">Lancar</strong></span>
-                            <span>Dikirim: {{ $shipment->created_at ? $shipment->created_at->format('H:i') . ' WIB' : '16:22 WIB' }}</span>
+                            <span>Dikirim: {{ $shipment->created_at ? $shipment->created_at->format('H:i') . ' WIB' : 'Baru saja' }}</span>
                         </div>
                     </div>
 
                     @php
-                        $latAsal = $shipment->lat_asal ?? -7.7956;
-                        $longAsal = $shipment->long_asal ?? 110.3695;
-                        $latTujuan = $shipment->lat_tujuan ?? ($shipment->posko->latitude ?? ($shipment->pengajuan->posko->latitude ?? -7.797));
-                        $longTujuan = $shipment->long_tujuan ?? ($shipment->posko->longitude ?? ($shipment->pengajuan->posko->longitude ?? 110.37));
-                        $namaPosko = $shipment->posko->nama_posko ?? ($shipment->pengajuan->posko->nama_posko ?? 'Posko Tujuan');
+                        $latAsal = $shipment->lat_asal ?? -7.8893;
+                        $longAsal = $shipment->long_asal ?? 110.3288;
+                        $latTujuan = $shipment->lat_tujuan ?? ($shipment->posko->latitude ?? ($shipment->pengajuan->posko->latitude ?? -7.8000));
+                        $longTujuan = $shipment->long_tujuan ?? ($shipment->posko->longitude ?? ($shipment->pengajuan->posko->longitude ?? 110.3800));
+                        $namaPosko = $shipment->posko->nama_posko ?? ($shipment->pengajuan->posko->nama_posko ?? 'Sub-Posko Tujuan');
                     @endphp
 
                     <button type="button"

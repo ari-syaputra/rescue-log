@@ -10,6 +10,7 @@ use App\Models\PengirimanInventaris;
 use App\Models\StokInventaris;
 use App\Models\Posko;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KomandoDistribusiController extends Controller
 {
@@ -36,18 +37,18 @@ class KomandoDistribusiController extends Controller
 
         // 2. Data Pengajuan Masuk dari Sub-Posko
         $pengajuans = PengajuanKebutuhan::with(['posko', 'items.inventaris'])
-            ->where('status', 'menunggu')
+            ->whereIn('status', ['pending', 'menunggu'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         // 3. Data Pengajuan Siap Kirim
-        $pengajuanSiapKirim = PengajuanKebutuhan::whereIn('status', ['disetujui', 'disetujui_komando'])->get();
+        $pengajuanSiapKirim = PengajuanKebutuhan::whereIn('status', ['disetujui', 'disetujui_sebagian'])->get();
 
         // 4. Data Armada Siaga
         $armadas = Armada::orderBy('created_at', 'desc')->get();
 
         // 5. Data Riwayat / Proses Pengiriman
-        $pengirimans = PengirimanInventaris::with(['pengajuan.posko', 'armada'])
+        $pengirimans = PengirimanInventaris::with(['pengajuan.posko', 'armada', 'posko'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -71,33 +72,125 @@ class KomandoDistribusiController extends Controller
     }
 
     /**
+     * Menyimpan Plotting Rute & Pengiriman Inventaris Baru
+     */
+    public function store(Request $request)
+    {
+        $pengajuanId = $request->input('pengajuan_id') ?? $request->input('pengajuan_kebutuhan_id');
+
+        $validated = $request->validate([
+            'armada_id'  => 'required|exists:armadas,id',
+            'nomor_resi' => 'nullable|string|max:100',
+            'catatan'    => 'nullable|string',
+        ]);
+
+        if (!$pengajuanId) {
+            return redirect()->back()->with('error', 'ID Pengajuan kebutuhan tidak ditemukan.');
+        }
+
+        $user = auth()->user();
+        
+        // Ambil data Pengajuan Kebutuhan beserta Posko tujuannya
+        $pengajuan = PengajuanKebutuhan::with('posko')->find($pengajuanId);
+
+        if (!$pengajuan) {
+            return redirect()->back()->with('error', 'Data Pengajuan Kebutuhan tidak ditemukan.');
+        }
+
+        // Tentukan Posko Tujuan dan Posko Asal (Komando)
+        $poskoTujuanId = $pengajuan->posko_id ?? $user->posko_id;
+        $poskoKomando  = $user->posko_id ? Posko::find($user->posko_id) : Posko::where('tipe_posko', 'komando')->first();
+
+        $pengirimanId = null;
+
+        DB::transaction(function () use ($validated, $pengajuan, $user, $poskoTujuanId, $poskoKomando, &$pengirimanId) {
+            // 1. Buat Record Pengiriman Inventaris
+            $pengiriman = PengirimanInventaris::create([
+                'pengajuan_kebutuhan_id' => $pengajuan->id,
+                'posko_id'               => $poskoTujuanId,
+                'armada_id'              => $validated['armada_id'],
+                'nomor_resi'             => $validated['nomor_resi'] ?? 'TRX-' . strtoupper(uniqid()),
+                'status_pengiriman'      => 'dalam_perjalanan',
+                'status_distribusi'      => 'dalam_perjalanan',
+                'catatan'                => $validated['catatan'] ?? null,
+                'lat_asal'               => $poskoKomando?->latitude ?? -7.8893,
+                'long_asal'              => $poskoKomando?->longitude ?? 110.3288,
+                'lat_tujuan'             => $pengajuan->posko?->latitude ?? $pengajuan->latitude ?? -7.8000,
+                'long_tujuan'            => $pengajuan->posko?->longitude ?? $pengajuan->longitude ?? 110.3800,
+                'tanggal_dikirim'        => now(),
+                'user_id'                => $user->id,
+                'bpbd_id'                => $user->bpbd_id,
+            ]);
+
+            $pengirimanId = $pengiriman->id;
+
+            // 2. Update Status Armada menjadi 'dalam_tugas' (Sesuai ENUM Migrasi armadas)
+            $armada = Armada::find($validated['armada_id']);
+            if ($armada) {
+                $armada->update(['status' => 'dalam_tugas']);
+            }
+
+            // 3. Update Status Pengajuan Kebutuhan menjadi 'dalam_pengiriman' (Sesuai ENUM Migrasi pengajuan_kebutuhan)
+            $pengajuan->update(['status' => 'dalam_pengiriman']);
+        });
+
+        return redirect()->route('komando.distribusi.index')
+            ->with('success', 'Plotting rute & instruksi pengiriman berhasil diproses!')
+            ->with('active_pengiriman_id', $pengirimanId);
+    }
+
+    /**
+     * Update Status Pengiriman Inventaris
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status_pengiriman' => 'required|string|in:siap,dalam_perjalanan,terkendala,terkirim,selesai',
+        ]);
+
+        $pengiriman = PengirimanInventaris::findOrFail($id);
+
+        DB::transaction(function () use ($pengiriman, $validated) {
+            $pengiriman->update([
+                'status_pengiriman' => $validated['status_pengiriman'],
+                'status_distribusi' => $validated['status_pengiriman'],
+                'tanggal_diterima'  => $validated['status_pengiriman'] === 'terkirim' ? now() : $pengiriman->tanggal_diterima,
+            ]);
+
+            // Jika pengiriman selesai/terkirim, bebaskan armada kembali 'tersedia' dan pengajuan ke 'selesai'
+            if (in_array($validated['status_pengiriman'], ['terkirim', 'selesai'])) {
+                if ($pengiriman->armada) {
+                    $pengiriman->armada->update(['status' => 'tersedia']);
+                }
+                if ($pengiriman->pengajuan) {
+                    $pengiriman->pengajuan->update(['status' => 'selesai']);
+                }
+            }
+        });
+
+        return redirect()->route('komando.distribusi.index')
+            ->with('success', 'Status pengiriman berhasil diperbarui!');
+    }
+
+    /**
      * Menyimpan data Armada baru ke Database
      */
     public function storeArmada(Request $request)
     {
         $validated = $request->validate([
             'nama_armada'   => 'required|string|max:255',
-            'jenis_armada'  => 'required|string|max:100',
-            'plat_nomor'    => 'nullable|string|max:50',
-            'nama_driver'   => 'nullable|string|max:255',
-            'kontak_driver' => 'nullable|string|max:50',
-            'kapasitas_kg'  => 'nullable|numeric|min:0',
-            'status'        => 'required|string|in:tersedia,siap,dalam_perjalanan,pemeliharaan',
+            'plat_nomor'    => 'required|string|max:50|unique:armadas,plat_nomor',
+            'nama_driver'   => 'required|string|max:255',
+            'no_hp'         => 'nullable|string|max:50',
+            'status'        => 'required|string|in:tersedia,dalam_tugas,maintenance',
         ]);
-
-        $user = auth()->user();
-        $posko = $user->posko_id ? Posko::find($user->posko_id) : Posko::where('tipe_posko', 'komando')->first();
 
         Armada::create([
             'nama_armada'   => $validated['nama_armada'],
-            'jenis_armada'  => $validated['jenis_armada'],
-            'plat_nomor'    => $validated['plat_nomor'] ?? null,
-            'nama_driver'   => $validated['nama_driver'] ?? null,
-            'kontak_driver' => $validated['kontak_driver'] ?? null,
-            'kapasitas_kg'  => $validated['kapasitas_kg'] ?? 0,
+            'plat_nomor'    => $validated['plat_nomor'],
+            'nama_driver'   => $validated['nama_driver'],
+            'no_hp'         => $validated['no_hp'] ?? null,
             'status'        => $validated['status'],
-            'posko_id'      => $posko?->id,
-            'bpbd_id'       => $user->bpbd_id,
         ]);
 
         return redirect()->route('komando.distribusi.index')->with('success', 'Armada pengiriman berhasil ditambahkan!');

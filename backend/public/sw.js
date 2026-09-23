@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sigap-subposko-cache-v11';
+const CACHE_NAME = 'sigap-subposko-cache-v13';
 
 const ASSETS_TO_CACHE = [
     '/',
@@ -7,8 +7,8 @@ const ASSETS_TO_CACHE = [
     '/lapangan/dashboard',
     '/lapangan/pengungsi',
     '/lapangan/pengajuan',
-    '/lapangan/distribusi',
-    '/lapangan/pengiriman',
+    '/lapangan/penyaluran',
+    '/lapangan/stok',
     '/lapangan/ambulans',
     '/img/Rescue-log.png',
     '/favicon.png',
@@ -18,18 +18,14 @@ const ASSETS_TO_CACHE = [
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
-// 1. Install & Pre-cache
+// 1. Install & Pre-cache Seluruh Aset Inti Menu Lapangan
 self.addEventListener('install', (event) => {
+    console.log('[PWA SW Lapangan] Pre-caching core assets...');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[PWA SW] Pre-caching assets...');
-            return Promise.allSettled(
-                ASSETS_TO_CACHE.map(url => 
-                    fetch(url).then(response => {
-                        if (response.ok) return cache.put(url, response);
-                    }).catch(err => console.warn('[PWA SW] Skip cache:', url))
-                )
-            );
+            return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
+                console.warn('[PWA SW Lapangan] Warning pre-caching non-fatal:', err);
+            });
         }).then(() => self.skipWaiting())
     );
 });
@@ -41,7 +37,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) {
-                        console.log('[PWA SW] Deleting old cache:', key);
+                        console.log('[PWA SW Lapangan] Deleting old cache:', key);
                         return caches.delete(key);
                     }
                 })
@@ -50,33 +46,57 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// 3. Fetch Strategy: Network First (Abaikan Request Ping Check agar tidak di-cache)
+// 3. Fetch Strategy: Smart Cache First / Network Fallback untuk Navigasi Lapangan
 self.addEventListener('fetch', (event) => {
-    if (event.request.method !== 'GET') return;
+    const url = new URL(event.request.url);
 
-    // ABAIKAN REQUEST PING CHECK AGAR TEMBUS LANGSUNG KE NETWORK
-    if (event.request.url.includes('check=')) {
-        return; // Biarkan browser menangani secara langsung ke jaringan
+    // Abaikan request non-GET atau request ping/check
+    if (event.request.method !== 'GET' || url.pathname.includes('/ping') || url.search.includes('check=')) {
+        return;
     }
 
+    // A. JIKA REQUEST ADALAH HALAMAN HTML (NAVIGASI MENU)
+    if (event.request.headers.get('accept')?.includes('text/html')) {
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                // JIKA KONEKSI ONLINE: Fetch dari jaringan dan perbarui cache
+                const fetchPromise = fetch(event.request)
+                    .then((networkResponse) => {
+                        if (networkResponse && networkResponse.status === 200) {
+                            const responseClone = networkResponse.clone();
+                            caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(event.request, responseClone);
+                            });
+                        }
+                        return networkResponse;
+                    })
+                    .catch(() => {
+                        // Jika offline dan tidak ada di cache, baru kembalikan dashboard
+                        return cachedResponse || caches.match('/lapangan/dashboard');
+                    });
+
+                // Jika offline dan halaman sudah ada di cache -> Kembalikan langsung dari Cache
+                return cachedResponse || fetchPromise;
+            })
+        );
+        return;
+    }
+
+    // B. JIKA REQUEST ADALAH ASET STATIS (CSS, JS, IMAGES, FONTS)
     event.respondWith(
-        fetch(event.request)
-            .then((networkResponse) => {
+        caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+            return fetch(event.request).then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseClone);
+                    });
                 }
                 return networkResponse;
-            })
-            .catch(() => {
-                return caches.match(event.request).then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-                    if (event.request.headers.get('accept')?.includes('text/html')) {
-                        return caches.match('/lapangan/dashboard') || caches.match('/login');
-                    }
-                });
-            })
+            });
+        })
     );
 });

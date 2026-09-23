@@ -3,7 +3,6 @@
 @section('title', 'Control Center Distribusi & Rute - SiGap BPBD')
 
 @push('styles')
-    <!-- Leaflet CSS untuk Visualisasi Peta Live -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <style>
@@ -56,7 +55,6 @@
 @section('content')
     <div class="space-y-6">
 
-        <!-- Flash Notification Success / Error -->
         @if (session('success'))
             <div
                 class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between shadow-2xs">
@@ -75,13 +73,10 @@
             </div>
         @endif
 
-        <!-- HEADER & TITLE SECTION -->
         <x-komando.distribusi.header />
 
-        <!-- BANNER AI OPTIMISASI RUTE DISTRIBUSI -->
         <x-komando.distribusi.ai-banner :active-kendala-count="$kendalaJalans->where('is_active', true)->count()" />
 
-        <!-- STATISTIK RINGKASAN DATA -->
         <x-komando.distribusi.stats :siap-kirim-count="$pengajuanSiapKirim->count()" :dalam-perjalanan-count="$pengirimans->whereIn('status_pengiriman', ['dijadwalkan', 'dalam_perjalanan'])->count()" :armada-count="$armadas->count()" :hambatan-count="$kendalaJalans->where('is_active', true)->count()" />
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -94,21 +89,17 @@
 
         </div>
 
-        <!-- TABEL DATA LAPORAN KENDALA JALAN -->
         <x-komando.distribusi.kendala-table :kendala-jalans="$kendalaJalans" />
 
     </div>
 
-    <!-- MODAL POPUP LAPOR KENDALA JALAN -->
     <x-komando.distribusi.modal-kendala />
 
-    <!-- MODAL POPUP REGISTRASI ARMADA BARU -->
     <x-komando.distribusi.modal-registrasi-armada />
 
 @endsection
 
 @push('scripts')
-    <!-- CDN Leaflet JS & Leaflet Routing Machine -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
@@ -247,7 +238,7 @@
                     const hLat = hardHazardHit.lat;
                     const hLng = hardHazardHit.lng;
 
-                    // Buat waypoint pengalihan yang lebih rasional ke arah timur (Pundong/Barongan)
+                    // Buat waypoint pengalihan yang lebih rasional ke arah timur
                     const detourPt = L.latLng(hLat + 0.008, hLng + 0.012);
 
                     waypoints = [
@@ -618,7 +609,7 @@
 
                 const latTujuan = parseFloat(rawLat);
                 const longTujuan = parseFloat(rawLng);
-                const namaPosko = p.pengajuan?.posko?.nama_posko || p.pengajuan?.user?.posko?.nama_posko || 'Sub-Posko Lapangan';
+                const namaPosko = p.posko?.nama_posko || p.pengajuan?.posko?.nama_posko || p.pengajuan?.user?.posko?.nama_posko || 'Sub-Posko Lapangan';
 
                 if (!isNaN(latTujuan) && !isNaN(longTujuan)) {
                     const markerPengiriman = L.marker([latTujuan, longTujuan]).addTo(mainMap);
@@ -644,6 +635,24 @@
             mainMap.on('click', function(e) {
                 openKendalaModal(e.latlng.lat, e.latlng.lng);
             });
+
+            // AUTO TRIGGER RUTE UNTUK PENGIRIMAN BARU SAAT DIBUAT
+            @if (session('active_pengiriman_id'))
+                const activeId = {{ session('active_pengiriman_id') }};
+                const activeShipment = pengirimans.find(p => p.id === activeId);
+
+                if (activeShipment) {
+                    const lAsal = activeShipment.lat_asal || poskoKomandoLat;
+                    const lgAsal = activeShipment.long_asal || poskoKomandoLng;
+                    const lTuj = activeShipment.lat_tujuan || activeShipment.posko?.latitude || activeShipment.pengajuan?.posko?.latitude || -7.8000;
+                    const lgTuj = activeShipment.long_tujuan || activeShipment.posko?.longitude || activeShipment.pengajuan?.posko?.longitude || 110.3800;
+                    const targetName = activeShipment.posko?.nama_posko || activeShipment.pengajuan?.posko?.nama_posko || 'Sub-Posko Tujuan';
+
+                    setTimeout(() => {
+                        drawDeliveryRoute(lAsal, lgAsal, lTuj, lgTuj, targetName);
+                    }, 600);
+                }
+            @endif
         });
     </script>
 @endpush

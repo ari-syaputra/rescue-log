@@ -6,25 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#1d4ed8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Judul Tab Browser Murni RESCUE-LOG -->
     <title>RESCUE-LOG - Sistem Posko Kebencanaan</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
 
-    <!-- Favicon Logo Seragam -->
     <link rel="icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
     <link rel="shortcut icon" type="image/png" href="{{ asset('img/Rescue-log.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('img/Rescue-log.png') }}">
 
-    <!-- Asset Vite (CSS & JS Utama + Alpine.js Bawaan) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -53,16 +49,31 @@
         </div>
     </main>
 
-    <!-- CDN SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // 1. REGISTRASI SERVICE WORKER PWA
+        // 1. REGISTRASI SERVICE WORKER PWA & AUTOMATIC PRE-FETCHING
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(reg => {
                         console.log('[PWA SW Lapangan] Registered successfully with scope:', reg.scope);
+
+                        // LAKUKAN PRE-FETCH SEMUA RUTE LAPANGAN SAAT ONLINE
+                        if (navigator.onLine) {
+                            const ruteLapangan = [
+                                '/lapangan/dashboard',
+                                '/lapangan/pengungsi',
+                                '/lapangan/pengajuan',
+                                '/lapangan/penyaluran',
+                                '/lapangan/stok',
+                                '/lapangan/ambulans'
+                            ];
+
+                            ruteLapangan.forEach(url => {
+                                fetch(url, { priority: 'low' }).catch(() => {});
+                            });
+                        }
                     })
                     .catch(err => {
                         console.error('[PWA SW Lapangan] Registration failed:', err);
