@@ -52,28 +52,12 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // 1. REGISTRASI SERVICE WORKER PWA & AUTOMATIC PRE-FETCHING
+        // 1. REGISTRASI SERVICE WORKER PWA (BERSIH DARI PRE-FETCH SPAM)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(reg => {
-                        console.log('[PWA SW Lapangan] Registered successfully with scope:', reg.scope);
-
-                        // LAKUKAN PRE-FETCH SEMUA RUTE LAPANGAN SAAT ONLINE
-                        if (navigator.onLine) {
-                            const ruteLapangan = [
-                                '/lapangan/dashboard',
-                                '/lapangan/pengungsi',
-                                '/lapangan/pengajuan',
-                                '/lapangan/penyaluran',
-                                '/lapangan/stok',
-                                '/lapangan/ambulans'
-                            ];
-
-                            ruteLapangan.forEach(url => {
-                                fetch(url, { priority: 'low' }).catch(() => {});
-                            });
-                        }
+                        console.log('[PWA SW Lapangan] Registered successfully:', reg.scope);
                     })
                     .catch(err => {
                         console.error('[PWA SW Lapangan] Registration failed:', err);
