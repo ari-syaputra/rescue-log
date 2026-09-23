@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sigap-subposko-cache-v13';
+const CACHE_NAME = 'sigap-subposko-cache-v14';
 
 const ASSETS_TO_CACHE = [
     '/',
@@ -18,20 +18,26 @@ const ASSETS_TO_CACHE = [
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
-// 1. Install & Pre-cache Seluruh Aset Inti Menu Lapangan
+// 1. Install & Pre-cache Aset Inti Lapangan (Toleran terhadap 404/Network failure)
 self.addEventListener('install', (event) => {
-    console.log('[PWA SW Lapangan] Pre-caching core assets...');
+    console.log('[PWA SW Lapangan] Pre-caching core assets v14...');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-                console.warn('[PWA SW Lapangan] Warning pre-caching non-fatal:', err);
-            });
+            // Menggunakan Promise.allSettled agar jika 1 URL 404/gagal, URL lain TETAP ter-cache
+            return Promise.allSettled(
+                ASSETS_TO_CACHE.map((url) => {
+                    return cache.add(url).catch((err) => {
+                        console.warn('[PWA SW Cache Warning] Gagal me-load asset:', url, err);
+                    });
+                })
+            );
         }).then(() => self.skipWaiting())
     );
 });
 
-// 2. Activate & Clean Old Caches
+// 2. Activate & Hapus Cache Versi Lama
 self.addEventListener('activate', (event) => {
+    console.log('[PWA SW Lapangan] Activating & Clearing Old Caches...');
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
@@ -50,7 +56,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Abaikan request non-GET atau request ping/check
+    // Abaikan request non-GET atau request ping/check koneksi
     if (event.request.method !== 'GET' || url.pathname.includes('/ping') || url.search.includes('check=')) {
         return;
     }
@@ -59,7 +65,7 @@ self.addEventListener('fetch', (event) => {
     if (event.request.headers.get('accept')?.includes('text/html')) {
         event.respondWith(
             caches.match(event.request).then((cachedResponse) => {
-                // JIKA KONEKSI ONLINE: Fetch dari jaringan dan perbarui cache
+                // JIKA ONLINE: Lakukan fetch dari server untuk revalidate/update cache
                 const fetchPromise = fetch(event.request)
                     .then((networkResponse) => {
                         if (networkResponse && networkResponse.status === 200) {
@@ -71,18 +77,18 @@ self.addEventListener('fetch', (event) => {
                         return networkResponse;
                     })
                     .catch(() => {
-                        // Jika offline dan tidak ada di cache, baru kembalikan dashboard
-                        return cachedResponse || caches.match('/lapangan/dashboard');
+                        // Jika Offline dan URL spesifik tidak ada di cache, gunakan dashboard/login sebagai fallback
+                        return cachedResponse || caches.match('/lapangan/dashboard') || caches.match('/login');
                     });
 
-                // Jika offline dan halaman sudah ada di cache -> Kembalikan langsung dari Cache
+                // Mengutamakan data dari Cache jika tersedia (mencegah layar berputar/lama saat jaringan buruk)
                 return cachedResponse || fetchPromise;
             })
         );
         return;
     }
 
-    // B. JIKA REQUEST ADALAH ASET STATIS (CSS, JS, IMAGES, FONTS)
+    // B. JIKA REQUEST ADALAH ASET STATIS (CSS, JS, IMAGES, FONTS, CDN)
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) {
